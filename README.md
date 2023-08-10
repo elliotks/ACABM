@@ -4,9 +4,22 @@
 
 This repo is the official repo for Cookie Clicker - Auto Click and Buy Mod.
 
-The goal of this repo is to allow people to provide fixes, features, track changes, etcetera.
+If you own a copy of Cookie Clicker on Steam you can Subscribe at: [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=2823633161&tscn=1690261417) for receiving the latest updates.
 
-If you own a copy of Cookie Clicker on Steam you can Subscribe this Mod at: [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=2823633161&tscn=1690261417) to receive the latest updates.
+Want to use the Mod on Cookie Clicker Web Version?
+https://orteil.dashnet.org/cookieclicker/
+
+1. Open Developer Tools in your Web Browser (usually F12 works)
+2. Click on the Console tab
+3. Copy and paste the following script in the Console window
+
+```
+javascript:(function() {
+    Game.LoadMod('https://cdn.jsdelivr.net/gh/elliotks/ACABM/autoclickandbuyMod/main.js');
+}());
+```
+
+4. press enter.
 
 ## Features
 
