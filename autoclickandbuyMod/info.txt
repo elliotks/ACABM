@@ -1,0 +1,12 @@
+{
+ "Name": "Auto Click and Buy Mod",
+ "ID": "autoclickandbuymod",
+ "Author": "Mafukie",
+ "Description": "Cookie clicker Auto Click and Buy Mod.",
+ "ModVersion": 2.32,
+ "GameVersion": 2.048,
+ "Date": "07/21/2023",
+ "Dependencies": [],
+ "Disabled": 1,
+ "AllowSteamAchievs": 1
+}
