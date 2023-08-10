@@ -35,7 +35,6 @@ javascript:(function() {
 - **Auto Wrinklers** - Pop the single fattest normal (excluding Shiny) wrinkler if you are at your max. This can now be customized further in the options menu to choose your Max Wrinkler count and include Shiny if needed.
 - **AutoPet Krumblor** - Pets Krumblor when you reach lvl 4 to unlock Dragon drops. Krumblor's Menu must be open. Turns off if you have all 4 drops.
 - **Ascend Luck** - Used for unlocking Lucky digit, Lucky number, and Lucky payout. Automatically Ascends you when conditions are met and toggles this feature to off. Turn back on manually if you have more to unlock. Does not buy the Heavenly upgrade for you.
-- **Season** - Auto switches season on popup
 - **Hotkeys (Keyboard Shutcuts)** - This option allows you to change settings via keyboard. Enable/Disable in the Options menu for the mod.
 
 ## Notes
