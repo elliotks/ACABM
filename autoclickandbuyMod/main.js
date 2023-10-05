@@ -178,7 +178,6 @@
             {
               objects: function() {
                 return Game.UpgradesInStore.filter(function(e) {
-                  // Original filter logic from 2.32
                   return (
                     [].indexOf(e.id) < 0 && 
                     e.pool != "prestige" &&
@@ -190,7 +189,6 @@
               },
               accessors: {
                 add: function(e) {
-                  // Directly mutate e like in 2.32
                   e.bought = 1;  
                 },
                 sub: function(e) {
@@ -207,14 +205,12 @@
             {
               objects: function() {
                 return Game.ObjectsById.filter(function(e) {
-                  // Original filter logic from 2.32
                   return [].indexOf(e.id) < 0 &&
                          !ACABM.settings.buildingvault.includes(e.id);  
                 });
               },
               accessors: {
                 add: function(e) {
-                  // Mutate e directly
                   e.amount++;   
                 },
                 sub: function(e) {
