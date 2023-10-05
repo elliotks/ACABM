@@ -173,58 +173,60 @@
            * @property {Function} accessors.sub - Removes an object from the schema.
            * @property {Function} accessors.price - Returns the price of an object.
            * @property {Function} accessors.lasting - Returns the lasting value of an object.
-           */
+           */      
           this.schema = [
             {
-              objects: () => {
-                return Game.UpgradesInStore.filter(({ id, pool }) => {
+              objects: function() {
+                return Game.UpgradesInStore.filter(function(e) {
+                  // Original filter logic from 2.32
                   return (
-                    [].indexOf(id) < 0 &&
-                    pool != "prestige" &&
-                    pool != "toggle" &&
-                    !Game.vault.includes(id) &&
-                    !ACABM.settings.upgradevault.includes(id)
+                    [].indexOf(e.id) < 0 && 
+                    e.pool != "prestige" &&
+                    e.pool != "toggle" &&
+                    !Game.vault.includes(e.id) &&
+                    !ACABM.settings.upgradevault.includes(e.id)  
                   );
                 });
               },
               accessors: {
-                add: ({ bought }) => {
-                  bought = 1;
+                add: function(e) {
+                  // Directly mutate e like in 2.32
+                  e.bought = 1;  
                 },
-                sub: ({ bought }) => {
-                  bought = 0;
+                sub: function(e) {
+                  e.bought = 0;
                 },
-                price: ({ basePrice }) => {
-                  return basePrice;
+                price: function(e) {
+                  return e.basePrice; 
                 },
-                lasting: ({ lasting }) => {
-                  return lasting;
-                },
-              },
+                lasting: function(e) {
+                  return e.lasting;
+                }
+              }
             },
             {
-              objects: () => {
-                return Game.ObjectsById.filter(({ id }) => {
-                  return (
-                    [].indexOf(id) < 0 &&
-                    !ACABM.settings.buildingvault.includes(id)
-                  );
+              objects: function() {
+                return Game.ObjectsById.filter(function(e) {
+                  // Original filter logic from 2.32
+                  return [].indexOf(e.id) < 0 &&
+                         !ACABM.settings.buildingvault.includes(e.id);  
                 });
               },
               accessors: {
-                add: ({ amount }) => {
-                  amount++;
+                add: function(e) {
+                  // Mutate e directly
+                  e.amount++;   
                 },
-                sub: ({ amount }) => {
-                  amount--;
+                sub: function(e) {
+                  e.amount--;
                 },
-                price: ({ price }) => {
-                  return price;
+                price: function(e) {
+                  return e.price;
                 },
-                lasting: ({ lasting }) => {
-                  return lasting;
-                },
-              },
+                lasting: function(e) {
+                  return e.lasting;
+                }
+              }
             },
           ];
         }
