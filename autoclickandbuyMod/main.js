@@ -1,6 +1,6 @@
 /**
  * @file Auto Click and Buy Mod for Cookie Clicker.
- * @version 2.33
+ * @version 2.36
  * @license GPLv3-or-later https://www.gnu.org/licenses/gpl-3.0.html
  * @see {@link https://steamcommunity.com/sharedfiles/filedetails/?id=2823633161&tscn=1690261417 Steam Workshop}
  * @description This file contains the implementation of the Auto Click and Buy Mod for Cookie Clicker. The mod provides several features such as AutoClick BigCookie, AutoClick Special (Shimmers), AutoClick BigCookie during frenzy/click frenzy, AutoBuy, AutoBuy Protect, Auto Fortune, Auto Wrinklers, AutoPet Krumblor, Ascend Luck, Season, and Hotkeys. The mod also provides an options menu to customize the features. The implementation uses an Immediately Invoked Function Expression (IIFE) to avoid polluting the global namespace. The mod initializes by adding a menu to the game and overriding the UpdateMenu function. The menu is created using a dictionary that maps the feature names to their descriptions and values. The mod also defines default settings and their keys.
@@ -1116,13 +1116,33 @@
     load: function (str) {
       if (str && str.length > 0) {
         const saveData = JSON.parse(str);
+    
+        // Check if the data is in the old format
+        const isOldData = !('wrinklersmax' in saveData);
+    
         ACABMsettingsKeys.forEach((key) => {
-          this.settings[key] = Array.isArray(saveData[key])
-            ? [...saveData[key]]
-            : +saveData[key] || 0;
+          if (isOldData) {
+            // Handle old format: Convert boolean values to numeric for non-array properties
+            if (typeof saveData[key] === 'boolean' && !Array.isArray(ACABMdefaultSettings[key])) {
+              this.settings[key] = saveData[key] ? 1 : 0;
+            } else if (key in ACABMdefaultSettings) {
+              // Use default value for missing fields or array fields
+              this.settings[key] = ACABMdefaultSettings[key];
+            }
+          } else {
+            // Handle new format: Assign array or numeric values as they are
+            this.settings[key] = Array.isArray(saveData[key])
+              ? [...saveData[key]]
+              : +saveData[key] || 0;
+          }
+    
+          // Add new fields with default values if they are missing
+          if (isOldData && !(key in this.settings)) {
+            this.settings[key] = ACABMdefaultSettings[key];
+          }
         });
       }
-    },
+    },        
     /**
      * Saves the settings to a string.
      * @returns {string} The settings string.
