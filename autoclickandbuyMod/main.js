@@ -24,8 +24,8 @@
     wrinklersmax: -1, // Max amount of Wrinklers to pop automatically
     krumblor: 0, // AutoPet Krumblor
     hotkeys: 0, // Hotkeys
-    upgradevault: [], // List of upgrades to buy automatically
-    buildingvault: [], // List of buildings to buy automatically
+    upgradevault: [], // List of upgrades to vault
+    buildingvault: [], // List of buildings to vault
     options: ["goldenAC", "wrathAC", "reindeerAC"], // Options for AutoClick Special
   };
 
@@ -388,6 +388,11 @@
             main: {
               delay: ACABM.settings.mainspeed,
               func: function () {
+                // If the player is ascending or the ascend timer is greater than 0, return.
+                if (Game.OnAscend || Game.AscendTimer > 0) {
+                  return;
+                }
+
                 Game.ClickCookie(0);
               },
             },
@@ -398,6 +403,11 @@
             frenzy: {
               delay: 50,
               func: function () {
+                // If the player is ascending or the ascend timer is greater than 0, return.
+                if (Game.OnAscend || Game.AscendTimer > 0) {
+                  return;
+                }
+
                 if (Game.buffs["Click Frenzy"] || Game.buffs["Frenzy"]) {
                   Game.ClickCookie(0);
                 }
@@ -459,6 +469,12 @@
          * @returns {void}
          */
         autobuy() {
+
+          // If the player is ascending or the ascend timer is greater than 0, return.
+          if (Game.OnAscend || Game.AscendTimer > 0) {
+            return;
+          }
+
           if (this.actions.timeouts.buy) {
             ACABM.abmessage["buy"] =
               "Waiting (" +
@@ -470,6 +486,7 @@
               this.target.name;
             return;
           }
+
           var info = this.calc.find_best(
             this.actions.main.id ? 1000 / this.actions.main.delay : 0
           );
@@ -718,6 +735,12 @@
          * @returns {void}
          */
         fortune() {
+
+          // If the player is ascending or the ascend timer is greater than 0, return.
+          if (Game.OnAscend || Game.AscendTimer > 0) {
+            return;
+          }
+
           if (Game.TickerEffect && Game.TickerEffect.type === "fortune") {
             Game.tickerL.click();
           }
@@ -729,6 +752,12 @@
          * @returns {void}
          */
         wrinklers() {
+
+          // If the player is ascending or the ascend timer is greater than 0, return.
+          if (Game.OnAscend || Game.AscendTimer > 0) {
+            return;
+          }
+
           // Pop fattest normal wrinkler when you reach max wrinklers.
           if (Game.elderWrath > 0) {
             let wrinklersM;
@@ -796,6 +825,12 @@
          * @returns {void}
          */
         krumblor() {
+
+          // If the player is ascending or the ascend timer is greater than 0, return.
+          if (Game.OnAscend || Game.AscendTimer > 0) {
+            return;
+          }
+
           const unlockMsg = [];
           const offReasons = [];
 
@@ -862,6 +897,12 @@
          * @returns {void}
          */
         gold() {
+
+          // If the player is ascending or the ascend timer is greater than 0, return.
+          if (Game.OnAscend || Game.AscendTimer > 0) {
+            return;
+          }
+
           if (Game.shimmers) {
             Game.shimmers.forEach((shimmer) => {
               if (shimmer && shimmer.type === "golden") {
