@@ -40,6 +40,6 @@ javascript:(function() {
 ## Notes
 
 - When you start the mod, all options will be Off. To enable / disable please use the Options menu - mod options are saved, so when you reload the game your previously enabled options will be enabled automatically.
-- If you started a fresh save without any buildings, and want to use the AutoBuy feature. Buy one building manually and the AutoBuy feature will work.
+- If you started a fresh save without any buildings, and want to use the AutoBuy feature. Buy one building manually and the AutoBuy feature will work. This should not be a problem anymore after the 2024-02-12 ACABM update.
 - After you Ascend and buying 1 each is too slow, you can change the buy amount to 100 or 10 until buying "slows down" then change back to 1. This option is available naively above the Buildings
 - This is a stand-alone mod that does not rely on CCES. If you use CCES and encounter an issue with this mod, please let me know.
