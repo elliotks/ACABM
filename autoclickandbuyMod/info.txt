@@ -1,12 +1,12 @@
 {
-    "Name": "Auto Click and Buy Mod",
-    "ID": "autoclickandbuymod",
-    "Author": "Mafukie",
-    "Description": "Cookie clicker Auto Click and Buy Mod.",
-    "ModVersion": 2.37,
-    "GameVersion": 2.048,
-    "Date": "2/10/2024",
-    "Dependencies": [],
-    "Disabled": 1,
-    "AllowSteamAchievs": 1
+ "Name": "Auto Click and Buy Mod",
+ "ID": "autoclickandbuymod",
+ "Author": "Mafukie",
+ "Description": "Cookie clicker Auto Click and Buy Mod.",
+ "ModVersion": 2.38,
+ "GameVersion": 2.048,
+ "Date": "2/10/2024",
+ "Dependencies": [],
+ "Disabled": 1,
+ "AllowSteamAchievs": 1,
 }

@@ -1,6 +1,6 @@
 /**
  * @file Auto Click and Buy Mod for Cookie Clicker.
- * @version 2.37
+ * @version 2.38
  * @license GPLv3-or-later https://www.gnu.org/licenses/gpl-3.0.html
  * @see {@link https://steamcommunity.com/sharedfiles/filedetails/?id=2823633161&tscn=1690261417 Steam Workshop}
  * @description This file contains the implementation of the Auto Click and Buy Mod for Cookie Clicker. The mod provides several features such as AutoClick BigCookie, AutoClick Special (Shimmers), AutoClick BigCookie during frenzy/click frenzy, AutoBuy, AutoBuy Protect, Auto Fortune, Auto Wrinklers, AutoPet Krumblor, Ascend Luck, Season, and Hotkeys. The mod also provides an options menu to customize the features. The implementation uses an Immediately Invoked Function Expression (IIFE) to avoid polluting the global namespace. The mod initializes by adding a menu to the game and overriding the UpdateMenu function. The menu is created using a dictionary that maps the feature names to their descriptions and values. The mod also defines default settings and their keys.
@@ -257,9 +257,14 @@
          * @returns {Array} The bonus value.
          */
         calc_bonus(item, list_generator, mouse_rate) {
-          var func = Game.Win;
-          Game.Win = function () {};
+          // temporarily override Game.Win
+          var funcGW = Game.Win;
+          Game.Win = function () {}; // Temporarily replace with no-op function
 
+          // temporarily override Game.CalculateGains
+          var funcCG = Game.CalculateGains;
+          Game.CalculateGains = function() {}; // Temporarily replace with no-op function
+          
           var res = list_generator().map(
             function (e) {
               var lasting = this.item.lasting(e);
@@ -297,7 +302,9 @@
             })
           );
 
-          Game.Win = func;
+          Game.Win = funcGW;
+          Game.CalculateGains = funcCG;
+
           return res;
         }
 
@@ -310,6 +317,7 @@
         find_best(mouse_rate) {
           var pool = [];
           var zero_buy = Math.sqrt(Game.cookiesEarned * Game.cookiesPs);
+          
           for (var i = 0; i < this.schema.length; i++)
             pool = pool.concat(
               this.calc_bonus(
@@ -318,7 +326,7 @@
                 mouse_rate || 0
               )
             );
-
+          
           return pool.reduce(function (m, v) {
             return m.acc == 0 && m.price < zero_buy
               ? m
@@ -472,7 +480,36 @@
 
           // If the player is ascending or the ascend timer is greater than 0, return.
           if (Game.OnAscend || Game.AscendTimer > 0) {
+            //  console.log("Autobuy skipped due to ascend.");
             return;
+          }
+
+          // Check if no buildings are owned and queue buying a Cursor
+          if (Game.BuildingsOwned === 0) {
+            // Filter out buildings that are not in the building vault
+            const availableBuildings = Game.ObjectsById.filter(function(building) {
+              return !ACABM.settings.buildingvault.includes(building.id);
+            });
+
+            // Check if buildings are available after filtering
+            if (availableBuildings.length === 0) {
+                // console.log("No buildings available to buy based on autobuy settings.");
+                return;
+            }
+
+            // Find the cheapest building not in the vault
+            const cheapestBuilding = availableBuildings.reduce(function(prev, curr) {
+              return (prev.price < curr.price) ? prev : curr;
+            });
+
+            console.log(`Cheapest available building: ${cheapestBuilding.name}`);
+
+            if (cheapestBuilding.price <= Game.cookies) {
+              console.log(`Buying cheapest building: ${cheapestBuilding.name}`);
+              cheapestBuilding.buy(1);
+              return;
+            }
+
           }
 
           if (this.actions.timeouts.buy) {
