@@ -3,9 +3,9 @@
     "ID": "autoclickandbuymod",
     "Author": "Mafukie",
     "Description": "Cookie clicker Auto Click and Buy Mod.",
-    "ModVersion": 2.38,
+    "ModVersion": 2.39,
     "GameVersion": 2.048,
-    "Date": "2/12/2024",
+    "Date": "2/16/2024",
     "Dependencies": [],
     "Disabled": 1,
     "AllowSteamAchievs": 1
