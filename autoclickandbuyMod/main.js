@@ -266,7 +266,8 @@
       autobuyMMinutes: "{0} Minuten", // {0} ist die Zeit
       autobuyMSecond: "{0} Sekunde", // {0} ist die Zeit
       autobuyMSeconds: "{0} Sekunden", // {0} ist die Zeit
-      autobuyMSellMode: "Sie befinden sich derzeit im Verkaufsmodus, wechseln Sie zurück zu:",
+      autobuyMSellMode:
+        "Sie befinden sich derzeit im Verkaufsmodus, wechseln Sie zurück zu:",
       autobuyMSellModeLink: "Kaufmodus",
       autobuyVUName: "Upgrades einlagern",
       autobuyVUDescription:
@@ -375,7 +376,8 @@
       autobuyMMinutes: "{0} minuten", // {0} is de tijd
       autobuyMSecond: "{0} seconde", // {0} is de tijd
       autobuyMSeconds: "{0} seconden", // {0} is de tijd
-      autobuyMSellMode: "Je bent momenteel in Verkoopmodus, schakel terug naar:",
+      autobuyMSellMode:
+        "Je bent momenteel in Verkoopmodus, schakel terug naar:",
       autobuyMSellModeLink: "Koopmodus",
       autobuyVUName: "Kluis Upgrades",
       autobuyVUDescription:
@@ -581,7 +583,8 @@
       autobuyMMinutes: "{0} minut", // {0} to czas
       autobuyMSecond: "{0} sekunda", // {0} to czas
       autobuyMSeconds: "{0} sekund", // {0} to czas
-      autobuyMSellMode: "Aktualnie jesteś w trybie Sprzedaży, przełącz z powrotem na:",
+      autobuyMSellMode:
+        "Aktualnie jesteś w trybie Sprzedaży, przełącz z powrotem na:",
       autobuyMSellModeLink: "Tryb Kupna",
       autobuyVUName: "Przechowywanie Ulepszeń",
       autobuyVUDescription:
@@ -1815,7 +1818,7 @@
             this.actionStates["buy"] &&
             (t != this.total ||
               this.target.price <= Game.cookies - this.calc.ecps())
-          ) 
+          )
             this.unqueueAction("buy");
         }
 
@@ -1827,7 +1830,6 @@
         autobuy() {
           // If the player is ascending or the ascend timer is greater than 0, return.
           if (Game.OnAscend || Game.AscendTimer > 0) {
-
             if (this.lastTick["autobuy"]) {
               this.unqueueAction("buy");
             }
@@ -1846,7 +1848,6 @@
           // Game.storeBulkButton(5) switches to sell all mode
 
           if (Game.buyMode === -1) {
-
             if (this.lastTick["autobuy"]) {
               this.unqueueAction("buy");
             }
@@ -2021,7 +2022,12 @@
           };
 
           for (var i in this.actions) {
-            if (this.actions[i].delay && i != "guard" && i != "togglesettings" && i != "buy") {
+            if (
+              this.actions[i].delay &&
+              i != "guard" &&
+              i != "togglesettings" &&
+              i != "buy"
+            ) {
               // add [ before and ] after first character of the action name. autobuy = [A]utobuy
               // not all first chracters for the option match the hotkey, so adding manually.
               switch (i) {
@@ -2252,13 +2258,10 @@
           }
 
           const hasUnlockedFortune = Game.HasUnlocked("Fortune cookies");
-
-          if (
-            hasUnlockedFortune &&
-            Game.TickerEffect &&
-            Game.TickerEffect.type === "fortune"
-          ) {
-            Game.tickerL.click();
+          if (hasUnlockedFortune) {
+            if (Game.TickerEffect && Game.TickerEffect.type === "fortune") {
+              Game.tickerL.click();
+            }
           } else {
             // need to update Translate for common messages, reusing krumblorMReqHU and krumblorMReqEnd for now.
             ACABM.settings["fortune"] = 0;
