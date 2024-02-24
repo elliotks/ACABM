@@ -1816,7 +1816,6 @@
             (t != this.total ||
               this.target.price <= Game.cookies - this.calc.ecps())
           ) 
-            console.log("guard: " + this.target.price + " " + Game.cookies - this.calc.ecps());
             this.unqueueAction("buy");
         }
 
