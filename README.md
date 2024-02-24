@@ -15,8 +15,15 @@ https://orteil.dashnet.org/cookieclicker/
 
 ```
 javascript:(function() {
+    Game.LoadMod('https://elliotks.com/ACABM/autoclickandbuyMod/main.js');
+}());
+```
+If above fails to load, try.
+```
+javascript:(function() {
     Game.LoadMod('https://cdn.jsdelivr.net/gh/elliotks/ACABM/autoclickandbuyMod/main.js');
 }());
+
 ```
 
 4. press enter.
