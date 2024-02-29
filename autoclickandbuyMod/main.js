@@ -4,6 +4,11 @@
  * @license GPLv3-or-later https://www.gnu.org/licenses/gpl-3.0.html
  * @see {@link https://steamcommunity.com/sharedfiles/filedetails/?id=2823633161&tscn=1690261417 Steam Workshop}
  * @description This file contains the implementation of the Auto Click and Buy Mod for Cookie Clicker. The mod provides several features such as AutoClick BigCookie, AutoClick Special (Shimmers), AutoClick BigCookie during frenzy/click frenzy, AutoBuy, AutoBuy Protect, Auto Fortune, Auto Wrinklers, AutoPet Krumblor, Ascend Luck, Season, and Hotkeys. The mod also provides an options menu to customize the features. The implementation uses an Immediately Invoked Function Expression (IIFE) to avoid polluting the global namespace. The mod initializes by adding a menu to the game and overriding the UpdateMenu function. The menu is created using a dictionary that maps the feature names to their descriptions and values. The mod also defines default settings and their keys.
+ * @credits
+ * - Lukyanov Dmitriy (Deamondz) (Github) - for the original script https://gist.github.com/deamondz/2372c8e48d9bcdc7bab4de956fa1e9b7
+ * - killerkonnat (Reddit) https://www.reddit.com/user/killerkonnat/ - for providing better "protect" math "12000" to "1200".
+ * - Elendarys (Reddit) https://www.reddit.com/user/Elendarys/ - for providing if(!isFinite(wait)) return; for autobuy. Which triggered an idea for limiting buying wait times to 30 seconds.
+ * - Reddit users for reporting bugs.
  */
 
 // IIFE to avoid polluting global namespace
@@ -1787,6 +1792,7 @@
           if (
             this.actionStates["buy"] &&
             (t != this.total ||
+              !this.lastTick["buy"] ||
               this.target.price <= Game.cookies - this.calc.ecps())
           )
             this.unqueueAction("buy");
@@ -1805,23 +1811,10 @@
             }
 
             return;
-          }
-
-          // Notes on Game.storeBulkButton:
-          // Utilized to switch between buy and sell modes, and to change the quantity of items to buy or sell.
-          // ACABM uses these to ensure autobuy is in buy mode when buying buildings.
-          // Game.storeBulkButton(0) switches to buy mode - Game.buyMode === 1
-          // Game.storeBulkButton(1) switches to sell mode - Game.buyMode === -1
-          // Game.storeBulkButton(2) switches to buy/sell 1 qty
-          // Game.storeBulkButton(3) switches to buy/sell 10 qty
-          // Game.storeBulkButton(4) switches to buy/sell 100 qty
-          // Game.storeBulkButton(5) switches to sell all mode
-
-          if (Game.buyMode === -1) {
+          } else if (Game.buyMode === -1) {
             if (this.lastTick["autobuy"]) {
               this.unqueueAction("buy");
             }
-
             abmessage["ABmsg"] = `${ACABMTranslate(
               "autobuyMSellMode"
             )} <b><a href="#" onclick=Game.storeBulkButton(0);>${ACABMTranslate(
@@ -1829,10 +1822,40 @@
             )}</a></b>`;
             setMessageContent("ABmsg", abmessage["ABmsg"]);
             return;
-          }
+          } else if (this.lastTick["buy"]) {
+            // console.log("Action States: ", this.actionStates, " Action lastTick: ", this.lastTick, " Actions: ", this.actions);
+            var info = this.calc.find_best(
+              this.actionStates["main"] ? 1000 / this.actions.main.delay : 0
+            );
+            if (info.obj.name !== this.target.name) {
+              this.unqueueAction("buy");
+            }
+            var protect =
+              this.protect && Game.Has("Get lucky") != 0
+                ? (Game.hasBuff("Frenzy") != 0 ? 1 : 7) * Game.cookiesPs * 1200
+                : 0;
+            var wait =
+              (protect + this.target.price - Game.cookies) / this.calc.ecps();
 
-          // Check if no buildings are owned and queue buying a Cursor
-          if (Game.BuildingsOwned === 0) {
+            if (wait > 1) {
+              abmessage["ABmsg"] = ACABMTranslate(
+                "autobuyMWaiting",
+                beautifySeconds(
+                  (this.target.price - Game.cookies) / this.calc.ecps()
+                ),
+                this.target.name
+              );
+              setMessageContent("ABmsg", abmessage["ABmsg"]);
+            } else {
+              abmessage["ABmsg"] = ACABMTranslate(
+                "autobuyMBuying",
+                this.target.name
+              );
+              setMessageContent("ABmsg", abmessage["ABmsg"]);
+            }
+            return;
+            // Check if no buildings are owned and queue buying a Cursor if the player has enough cookies
+          } else if (Game.BuildingsOwned === 0) {
             // Filter out buildings that are not in the building vault
             const availableBuildings = Game.ObjectsById.filter(function (
               building
@@ -1864,57 +1887,57 @@
           }
 
           function beautifySeconds(seconds) {
-            seconds = Math.floor(seconds);
-            var days = Math.floor(seconds / 86400);
-            var hours = Math.floor((seconds % 86400) / 3600);
-            var minutes = Math.floor((seconds % 3600) / 60);
-            seconds = seconds % 60; // Recalculate seconds for remaining part
-
+            var days = Math.floor(seconds / 86400); // Calculate days
+            seconds %= 86400; // Update seconds
+            var hours = Math.floor(seconds / 3600); // Calculate hours
+            seconds %= 3600; // Update seconds
+            var minutes = Math.floor(seconds / 60); // Calculate minutes
+            seconds %= 60; // Update seconds
             var parts = [];
+          
             if (days > 0)
-              parts.push(
-                ACABMTranslate(days == 1 ? "autobuyMDay" : "autobuyMDays", days)
-              );
+              parts.push(ACABMTranslate(days == 1 ? "autobuyMDay" : "autobuyMDays", days));
             if (hours > 0)
-              parts.push(
-                ACABMTranslate(
-                  hours == 1 ? "autobuyMHour" : "autobuyMHours",
-                  hours
-                )
-              );
+              parts.push(ACABMTranslate(hours == 1 ? "autobuyMHour" : "autobuyMHours", hours));
             if (minutes > 0)
-              parts.push(
-                ACABMTranslate(
-                  minutes == 1 ? "autobuyMMinute" : "autobuyMMinutes",
-                  minutes
-                )
-              );
-            // Only add seconds if they are greater than 0 or if it's the only component
-            if (seconds > 0 || (days === 0 && hours === 0 && minutes === 0)) {
-              parts.push(
-                ACABMTranslate(
-                  seconds == 1 ? "autobuyMSecond" : "autobuyMSeconds",
-                  seconds)
-              );
+              parts.push(ACABMTranslate(minutes == 1 ? "autobuyMMinute" : "autobuyMMinutes", minutes));
+            
+            // If there are minutes, don't apply parseFloat
+            if (minutes === 0 && seconds < 60) {
+              seconds = parseFloat(seconds).toFixed(2); // Less than a minute, keep decimals
+            } else {
+              seconds = Math.floor(seconds); // Over a minute, round down
             }
-
+          
+            // Only add seconds if they are greater than 0 or if it's the only component
+            if (seconds > 0 || days === 0 && hours === 0 && minutes === 0) {
+              parts.push(ACABMTranslate(seconds == 1 ? "autobuyMSecond" : "autobuyMSeconds", seconds));
+            }
+          
             return parts.join(", ");
           }
+          
+          
 
-          if (this.actionStates["buy"]) {
+          /*
+          if (this.lastTick["buy"]) {
             abmessage["ABmsg"] = ACABMTranslate(
               "autobuyMWaiting",
-              beautifySeconds(
-                Math.floor((this.target.price - Game.cookies) / this.calc.ecps())
+              Beautify(
+                Math.floor(
+                  (this.target.price - Game.cookies) / this.calc.ecps()
+                ),
+                1
               ),
               this.target.name
             );
             setMessageContent("ABmsg", abmessage["ABmsg"]);
             return;
           }
+          */
 
           var info = this.calc.find_best(
-            this.actions.main.id ? 1000 / this.actions.main.delay : 0
+            this.actionStates["main"] ? 1000 / this.actions.main.delay : 0
           );
 
           var protect =
@@ -1953,10 +1976,17 @@
             this.target.price = protect + info.price;
             this.queueAction(
               "buy",
-              Math.floor(1000 * (Game.cookiesPs ? wait + 0.05 : 60)),
+              parseFloat(
+                (1000 * (Game.cookiesPs ? wait + 0.05 : 60)).toFixed(2)
+              ),
               function () {
-                if (info.price <= Game.cookies) {
-                  this.say('Buying "' + info.obj.name + '"');
+                if (this.target.price <= Game.cookies) {
+                  abmessage["ABmsg"] = ACABMTranslate(
+                    "autobuyMBuying",
+                    this.target.name
+                  );
+                  this.say(abmessage["ABmsg"]);
+                  setMessageContent("ABmsg", abmessage["ABmsg"]);
                   if (info.obj.name === "One mind") {
                     Game.UpgradesById["69"].buy(1);
                     Game.ClosePrompt();
@@ -1971,6 +2001,12 @@
               }.bind(this)
             );
           } else {
+            abmessage["ABmsg"] = ACABMTranslate(
+              "autobuyMBuying",
+              info.obj.name
+            );
+            this.say(abmessage["ABmsg"]);
+            setMessageContent("ABmsg", abmessage["ABmsg"]);
             if (info.obj.name === "One mind") {
               Game.UpgradesById["69"].buy(1);
               Game.ClosePrompt();
@@ -2050,7 +2086,11 @@
         }
 
         /**
-         * The `ascendluck` function is responsible for checking if the player has unlocked the necessary Heavenly Upgrades to ascend with Lucky digit, Lucky number, and Lucky payout. If the player has not unlocked these upgrades, the function will display a message indicating which upgrades are required. If the player has unlocked all upgrades, the function will turn off the `ascendluck` action. If the player has unlocked some but not all upgrades, the function will wait for the player to reach the required prestige level before ascending.
+         * The `ascendluck` function is responsible for checking if the player has unlocked the necessary
+         * Heavenly Upgrades to ascend with Lucky digit, Lucky number, and Lucky payout. If the player has not unlocked these upgrades,
+         * the function will display a message indicating which upgrades are required. If the player has unlocked all upgrades, the
+         * function will turn off the `ascendluck` action. If the player has unlocked some but not all upgrades, the function will wait
+         * for the player to reach the required prestige level before ascending.
          * @function
          * @returns {void}
          */
@@ -2061,6 +2101,7 @@
           function doascendluckOff() {
             ACABM.settings["ascendluck"] = 0;
             thisfunc.toggleAction("ascendluck", true);
+            Game.UpdateMenu();
           }
 
           function doascendLuck() {
@@ -2248,6 +2289,7 @@
               ' "Fortune cookies" ' +
               ACABMTranslate("krumblorMReqEnd");
             setMessageContent("AFmsg", abmessage["AFmsg"]);
+            Game.UpdateMenu();
           }
         }
 
@@ -2348,6 +2390,8 @@
               ACABMTranslate("krumblorMCompleted") +
                 " Dragon scale, Dragon claw, Dragon fang, Dragon teddy bear."
             );
+
+            Game.UpdateMenu();
           } else {
             // If Krumblor menu is open, Dragon level is 4 or higher, and you own the Heavenly Upgrade "Pet the dragon", pet Krumblor.
             if (isKrumblorMenuOpen && dragonLevel >= 4 && hasPetDragon) {
@@ -2379,6 +2423,8 @@
                 ...offReasons,
                 ACABMTranslate("krumblorMReqEnd")
               );
+
+              Game.UpdateMenu();
             }
           }
 
@@ -2479,7 +2525,6 @@
                 ? " delay is now " + this.actions[name].delay + "ms"
                 : " delay cannot be set under 50ms")
           );
-          Game.UpdateMenu();
         }
       }
 
@@ -2971,8 +3016,8 @@
             labelbuildings.appendChild(a);
           }
 
-          var lineDiv = document.createElement('div');
-          lineDiv.className = 'line';
+          var lineDiv = document.createElement("div");
+          lineDiv.className = "line";
 
           listing.appendChild(labelupgrades);
           listing.appendChild(labeltech);
@@ -3077,12 +3122,11 @@
           );
           labelautoclick.innerHTML = slider;
 
-          var lineDiv = document.createElement('div');
-          lineDiv.className = 'line';
+          var lineDiv = document.createElement("div");
+          lineDiv.className = "line";
 
           labelautoclick.appendChild(lineDiv);
           listing.appendChild(labelautoclick);
-          
         } else if (id === "wrinklers") {
           if (
             settings.wrinklersmax == -1 ||
@@ -3109,7 +3153,7 @@
               "'].settings.wrinklersmax=Number(l('ACABMWrinklersSlider').value);l('ACABMWrinklersSliderRightText').innerHTML=l('ACABMWrinklersSlider').value;"
           );
           labelwrinklers.innerHTML = slider;
-          
+
           let wrinklerspopSWbtn = createButton(
             ACABMTranslate("popSWName"),
             "popSW",
@@ -3117,12 +3161,11 @@
           );
           labelwrinklers.appendChild(wrinklerspopSWbtn);
 
-          var lineDiv = document.createElement('div');
-          lineDiv.className = 'line';
+          var lineDiv = document.createElement("div");
+          lineDiv.className = "line";
 
           labelwrinklers.appendChild(lineDiv);
           listing.appendChild(labelwrinklers);
-
         } else if (id === "gold") {
           var labelgold = document.createElement("div");
           labelgold.className = "goldContent";
@@ -3155,13 +3198,12 @@
             `( ${ACABMTranslate("reindeerACDescription")} )`
           );
           labelgold.appendChild(goldreindeerACbtn);
-          
-          var lineDiv = document.createElement('div');
-          lineDiv.className = 'line';
+
+          var lineDiv = document.createElement("div");
+          lineDiv.className = "line";
 
           labelgold.appendChild(lineDiv);
           listing.appendChild(labelgold);
-
         }
         return listing;
       }
@@ -3174,7 +3216,9 @@
         let messageText =
           abmessage[messageKey] !== undefined
             ? abmessage[messageKey]
-            : " </br>";
+            : ACABM.settings["autobuy"] && id === "autobuy"
+            ? " </br>"
+            : "";
         let containerId = `label${id}msg`;
         let messageContainer = document.getElementById(containerId);
 
@@ -3189,7 +3233,7 @@
       }
 
       function setMessageContent(key, value) {
-        abmessage[key] = value;
+        abmessage[key] = value ? value : abmessage[key];
         let id;
         switch (key) {
           case "ABmsg":
