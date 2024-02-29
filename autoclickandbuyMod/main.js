@@ -13,6 +13,9 @@
   // Define a constant called ACABMName that contains the name of the Auto Click and Buy Mod.
   const ACABMName = "Auto Click and Buy Mod";
 
+  // return if the mod is already loaded, used by `load` function.
+  var ACABMLoaded = false; // not used, but kept for reference.
+
   // Define a constant called ACABMVersion that contains the version of the Auto Click and Buy Mod.
   // const ACABMVersion = "2.40";
 
@@ -37,9 +40,6 @@
       autobuyName: "Auto-Buy",
       autobuyDescription:
         "Buy 'best CPS' buildings and upgrades automatically. Status shown below when enabled.",
-      autobuyMR: "Manual Refresh",
-      autobuyMRDescription:
-        "Manually refresh the AutoBuy status message, if needed.",
       autobuyMWaiting: 'Waiting ( {0} ) for: "{1}"', // {0} is the time, {1} is the item
       autobuyMWaitingLong:
         'Auto-Buy wants to buy: "{0}", but the wait time is: {1}', // {0} is the item, {1} is the time
@@ -141,9 +141,6 @@
       autobuyName: "Achat Automatique",
       autobuyDescription:
         "Achète automatiquement les bâtiments et améliorations avec le meilleur CPS. Statut affiché ci-dessous lorsque activé.",
-      autobuyMR: "Rafraîchissement Manuel",
-      autobuyMRDescription:
-        "Rafraîchir manuellement le message de statut de l'Achat Automatique, si nécessaire.",
       autobuyMWaiting: 'En attente ( {0} ) pour: "{1}"', // {0} est le temps, {1} est l'élément
       autobuyMWaitingLong:
         'Auto-Achat veut acheter: "{0}" mais le temps d\'attente est: {1}', // {0} est l'élément, {1} est le temps
@@ -251,9 +248,6 @@
       autobuyName: "Auto-Kauf",
       autobuyDescription:
         "Kauft automatisch die Gebäude und Upgrades mit dem besten KPS (Kekse pro Sekunde). Status wird unten angezeigt, wenn aktiviert.",
-      autobuyMR: "Manuelles Aktualisieren",
-      autobuyMRDescription:
-        "Manuelles Aktualisieren der Auto-Kauf Statusnachricht, falls nötig.",
       autobuyMWaiting: 'Warten ( {0} ) auf: "{1}"', // {0} ist die Zeit, {1} ist das Item
       autobuyMWaitingLong:
         'Auto-Kauf möchte kaufen: "{0}", aber die Wartezeit beträgt: {1}', // {0} ist das Item, {1} ist die Zeit
@@ -361,9 +355,6 @@
       autobuyName: "Auto-Koop",
       autobuyDescription:
         "Koopt automatisch de 'beste CPS' gebouwen en upgrades. Status wordt hieronder weergegeven indien ingeschakeld.",
-      autobuyMR: "Handmatige Verversing",
-      autobuyMRDescription:
-        "Ververs de Auto-Koop statusmelding handmatig indien nodig.",
       autobuyMWaiting: 'Wachten ( {0} ) voor: "{1}"', // {0} is de tijd, {1} is het item
       autobuyMWaitingLong:
         'Auto-Koop wil kopen: "{0}" maar de wachttijd is: {1}', // {0} is het item, {1} is de tijd
@@ -467,9 +458,6 @@
       autobuyName: "Auto-Koupě",
       autobuyDescription:
         "Automaticky kupuje budovy a vylepšení s nejlepším CPS. Stav zobrazen níže, když aktivováno.",
-      autobuyMR: "Ruční obnovení",
-      autobuyMRDescription:
-        "Manuálně obnovit stavovou zprávu Auto-Koupě, pokud je to potřeba.",
       autobuyMWaiting: 'Čekání ( {0} ) na: "{1}"', // {0} je čas, {1} je položka
       autobuyMWaitingLong:
         'Auto-Nákup chce koupit: "{0}", ale doba čekání je: {1}', // {0} je položka, {1} je čas
@@ -568,9 +556,6 @@
       autobuyName: "Auto-Kup",
       autobuyDescription:
         "Automatyczne kupowanie budynków i ulepszeń z najlepszym CPS. Stan pokazany poniżej po włączeniu.",
-      autobuyMR: "Odświeżanie Ręczne",
-      autobuyMRDescription:
-        "Ręczne odświeżanie komunikatu o stanie Auto-Kup, jeśli jest to potrzebne.",
       autobuyMWaiting: 'Oczekiwanie ( {0} ) na: "{1}"', // {0} to czas, {1} to przedmiot
       autobuyMWaitingLong:
         'Auto-Zakup chce kupić: "{0}", ale czas oczekiwania to: {1}', // {0} to przedmiot, {1} to czas
@@ -673,9 +658,6 @@
       autobuyName: "Auto-Acquisto",
       autobuyDescription:
         "Acquista automaticamente edifici e potenziamenti con il miglior CPS. Stato mostrato sotto quando attivato.",
-      autobuyMR: "Aggiornamento Manuale",
-      autobuyMRDescription:
-        "Aggiorna manualmente il messaggio di stato dell'Auto-Acquisto, se necessario.",
       autobuyMWaiting: 'In attesa ( {0} ) per: "{1}"', // {0} è il tempo, {1} è l'oggetto
       autobuyMWaitingLong:
         'Auto-Acquisto vuole comprare: "{0}" ma il tempo di attesa è: {1}', // {0} è l'oggetto, {1} è il tempo
@@ -781,9 +763,6 @@
       autobuyName: "Auto-Compra",
       autobuyDescription:
         "Compra automáticamente los edificios y mejoras con mejor CPS. Estado mostrado abajo cuando está habilitado.",
-      autobuyMR: "Refresco Manual",
-      autobuyMRDescription:
-        "Refrescar manualmente el mensaje de estado de Auto-Compra, si es necesario.",
       autobuyMWaiting: 'Esperando ( {0} ) por: "{1}"', // {0} es el tiempo, {1} es el artículo
       autobuyMWaitingLong:
         'Auto-Compra quiere comprar: "{0}" pero el tiempo de espera es: {1}', // {0} es el artículo, {1} es el tiempo
@@ -890,9 +869,6 @@
       autobuyName: "Auto-Compra",
       autobuyDescription:
         "Compra automática dos prédios e melhorias com melhor CPS. Status exibido abaixo quando ativado.",
-      autobuyMR: "Atualização Manual",
-      autobuyMRDescription:
-        "Atualizar manualmente a mensagem de status da Auto-Compra, se necessário.",
       autobuyMWaiting: 'Aguardando ( {0} ) por: "{1}"', // {0} é o tempo, {1} é o item
       autobuyMWaitingLong:
         'Auto-Compra quer comprar: "{0}" mas o tempo de espera é: {1}', // {0} é o item, {1} é o tempo
@@ -994,9 +970,6 @@
       autobuyName: "自動購入",
       autobuyDescription:
         "最高のCPSを持つ建物とアップグレードを自動的に購入します。有効時に下に状態が表示されます。",
-      autobuyMR: "手動リフレッシュ",
-      autobuyMRDescription:
-        "必要に応じて自動購入のステータスメッセージを手動でリフレッシュします。",
       autobuyMWaiting: "待機中 ( {0} )：{1}", // {0} は時間、{1} はアイテム
       autobuyMWaitingLong: "自動購入が求めています：{0}、しかし待ち時間は：{1}", // {0} はアイテム、{1} は時間
       autobuyMBuying: "購入中：{0}", // {0} はアイテム
@@ -1095,8 +1068,6 @@
       mainhotkeyDecrease: "减少自动点击速度",
       autobuyName: "自动购买",
       autobuyDescription: "自动购买最佳CPS的建筑和升级。启用时下方显示状态。",
-      autobuyMR: "手动刷新",
-      autobuyMRDescription: "如有需要，手动刷新自动购买状态信息。",
       autobuyMWaiting: "等待中 ( {0} )：{1}", // {0} 是时间，{1} 是物品
       autobuyMWaitingLong: "自动购买想要购买：{0}，但等待时间是：{1}", // {0} 是物品，{1} 是时间
       autobuyMBuying: "购买中：{0}", // {0} 是物品
@@ -1189,9 +1160,6 @@
       autobuyName: "Авто-Покупка",
       autobuyDescription:
         "Автоматическая покупка зданий и улучшений с лучшим CPS. Статус отображается ниже при активации.",
-      autobuyMR: "Ручное Обновление",
-      autobuyMRDescription:
-        "Ручное обновление сообщения статуса Авто-Покупки, если необходимо.",
       autobuyMWaiting: 'Ожидание ( {0} ) для: "{1}"', // {0} это время, {1} это предмет
       autobuyMWaitingLong:
         'Авто-Покупка хочет купить: "{0}", но время ожидания: {1}', // {0} это предмет, {1} это время
@@ -1658,6 +1626,7 @@
           this.activateGuard();
           this.activateSettings();
           Game.registerHook("logic", () => this.updateActions());
+          // Game.registerHook("reincarnate", () => this.onReset());
           Game.registerHook("reset", () => this.onReset());
         }
 
@@ -1814,6 +1783,7 @@
             1000 * (Game.hasBuff("Frenzy") != 0 ? 1 : 0) +
             Game.BuildingsOwned +
             Game.UpgradesOwned;
+          // console.log("Guard", this.total, t, this.actionStates["buy"],this.target.price <= Game.cookies - this.calc.ecps());
           if (
             this.actionStates["buy"] &&
             (t != this.total ||
@@ -1852,11 +1822,12 @@
               this.unqueueAction("buy");
             }
 
-            abmessage["buy"] = `${ACABMTranslate(
+            abmessage["ABmsg"] = `${ACABMTranslate(
               "autobuyMSellMode"
             )} <b><a href="#" onclick=Game.storeBulkButton(0);>${ACABMTranslate(
               "autobuyMSellModeLink"
             )}</a></b>`;
+            setMessageContent("ABmsg", abmessage["ABmsg"]);
             return;
           }
 
@@ -1893,6 +1864,7 @@
           }
 
           function beautifySeconds(seconds) {
+            seconds = Math.floor(seconds);
             var days = Math.floor(seconds / 86400);
             var hours = Math.floor((seconds % 86400) / 3600);
             var minutes = Math.floor((seconds % 3600) / 60);
@@ -1922,8 +1894,7 @@
               parts.push(
                 ACABMTranslate(
                   seconds == 1 ? "autobuyMSecond" : "autobuyMSeconds",
-                  Math.floor(seconds)
-                )
+                  seconds)
               );
             }
 
@@ -1931,14 +1902,14 @@
           }
 
           if (this.actionStates["buy"]) {
-            abmessage["buy"] = ACABMTranslate(
+            abmessage["ABmsg"] = ACABMTranslate(
               "autobuyMWaiting",
               beautifySeconds(
-                (this.target.price - Game.cookies) / this.calc.ecps(),
-                1
+                Math.floor((this.target.price - Game.cookies) / this.calc.ecps())
               ),
               this.target.name
             );
+            setMessageContent("ABmsg", abmessage["ABmsg"]);
             return;
           }
 
@@ -1953,11 +1924,12 @@
           var wait = (protect + info.price - Game.cookies) / this.calc.ecps();
 
           if (!isFinite(wait) || wait > 120) {
-            abmessage["buy"] = ACABMTranslate(
+            abmessage["ABmsg"] = ACABMTranslate(
               "autobuyMWaitingLong",
               info.obj.name,
               beautifySeconds(wait)
             );
+            setMessageContent("ABmsg", abmessage["ABmsg"]);
             return;
           }
 
@@ -1972,7 +1944,8 @@
             msg = ACABMTranslate(msgKey, info.obj.name);
           }
 
-          abmessage["buy"] = msg;
+          abmessage["ABmsg"] = msg ? msg : abmessage["ABmsg"];
+          setMessageContent("ABmsg", abmessage["ABmsg"]);
 
           this.say(msg);
           if (wait > 0) {
@@ -2067,8 +2040,7 @@
               ACABMTranslate(
                 "autobuyMWaiting",
                 beautifySeconds(
-                  (this.target.price - Game.cookies) / this.calc.ecps(),
-                  1
+                  (this.target.price - Game.cookies) / this.calc.ecps()
                 ),
                 this.target.name
               );
@@ -2089,7 +2061,6 @@
           function doascendluckOff() {
             ACABM.settings["ascendluck"] = 0;
             thisfunc.toggleAction("ascendluck", true);
-            Game.UpdateMenu();
           }
 
           function doascendLuck() {
@@ -2099,6 +2070,7 @@
             ACABM.settings["ascendluck"] = 0;
             thisfunc.toggleAction("ascendluck", true);
             abmessage["ALmsg"] = undefined;
+            setMessageContent("ALmsg", undefined);
           }
 
           function canBePurchased(upgradeName) {
@@ -2123,7 +2095,6 @@
                 hcTotal
               );
               abmessage["ALmsg"] = message;
-
               return false; // Indicate that the purchase cannot be made
             }
           }
@@ -2136,6 +2107,7 @@
             abmessage["ALmsg"] =
               ACABMTranslate("ascendluckMCompleted") +
               " Lucky digit, Lucky number, Lucky payout.";
+            setMessageContent("ALmsg", abmessage["ALmsg"]);
             doascendluckOff();
             return;
           }
@@ -2159,6 +2131,7 @@
                     "<br>" +
                     ACABMTranslate("ascendluckMOne7")
                   : ACABMTranslate("ascendluckMOne7");
+                setMessageContent("ALmsg", abmessage["ALmsg"]);
               }
             } else if (
               !Game.HasUnlocked("Lucky number") &&
@@ -2179,6 +2152,7 @@
                       "<br>" +
                       ACABMTranslate("ascendluckMTwo7")
                     : ACABMTranslate("ascendluckMTwo7");
+                  setMessageContent("ALmsg", abmessage["ALmsg"]);
                 }
               } else {
                 abmessage["ALmsg"] =
@@ -2197,6 +2171,7 @@
                     : '"Lasting fortune"') +
                   " " +
                   ACABMTranslate("ascendluckMReqEnd");
+                setMessageContent("ALmsg", abmessage["ALmsg"]);
                 doascendluckOff();
               }
             } else if (
@@ -2218,6 +2193,7 @@
                       "<br>" +
                       ACABMTranslate("ascendluckMFour7")
                     : ACABMTranslate("ascendluckMFour7");
+                  setMessageContent("ALmsg", abmessage["ALmsg"]);
                 }
               } else {
                 abmessage["ALmsg"] =
@@ -2234,6 +2210,7 @@
                   (Game.HasUnlocked("Decisive fate") ? "" : '"Decisive fate"') +
                   " " +
                   ACABMTranslate("ascendluckMReqEnd");
+                setMessageContent("ALmsg", abmessage["ALmsg"]);
                 doascendluckOff();
               }
             }
@@ -2242,6 +2219,7 @@
               ACABMTranslate("ascendluckMReqHU") +
               ' "Heavenly luck" ' +
               ACABMTranslate("ascendluckMReqEnd");
+            setMessageContent("ALmsg", abmessage["ALmsg"]);
             doascendluckOff();
           }
         }
@@ -2269,7 +2247,7 @@
               ACABMTranslate("krumblorMReqHU") +
               ' "Fortune cookies" ' +
               ACABMTranslate("krumblorMReqEnd");
-            Game.UpdateMenu();
+            setMessageContent("AFmsg", abmessage["AFmsg"]);
           }
         }
 
@@ -2405,7 +2383,7 @@
           }
 
           abmessage["AKmsg"] = unlockMsg.join("<br>");
-          Game.UpdateMenu();
+          setMessageContent("AKmsg", abmessage["AKmsg"]);
         }
 
         /**
@@ -2505,6 +2483,8 @@
         }
       }
 
+      // ACABM.controller = new Controller();
+
       /**
        * Object representing the view of the autoclickandbuyMod.
        * @typedef {Object} View
@@ -2573,6 +2553,7 @@
             titleSection.nextSibling.nextSibling.nextSibling
           );
         }
+        return;
       }
 
       /**
@@ -2703,7 +2684,7 @@
          * @param {string} settingKey - The key of the setting associated with the button.
          * @param {string} [label] - The label to display next to the button.
          */
-        function createButton(title, settingKey, label) {
+        function createButton(title, settingKey, label = "") {
           const div = document.createElement("div");
           const a = document.createElement("a");
           const optionIndex = settings.options.indexOf(settingKey);
@@ -2713,13 +2694,18 @@
           }`;
           a.innerText = `${title} ${
             optionIndex !== -1
-              ? `${ACABMTranslate("optionOn")}`
-              : `${ACABMTranslate("optionOff")}`
+              ? ACABMTranslate("optionOn")
+              : ACABMTranslate("optionOff")
           }`;
           a.onclick = function () {
             toggleOption(settings.options, settingKey);
             PlaySound("snd/tick.mp3");
-            Game.UpdateMenu();
+            a.classList.toggle("off");
+            a.innerText = `${title} ${
+              settings.options.indexOf(settingKey) !== -1
+                ? ACABMTranslate("optionOn")
+                : ACABMTranslate("optionOff")
+            }`;
           };
 
           div.appendChild(a);
@@ -2730,12 +2716,43 @@
             div.appendChild(labelElement);
           }
 
-          listing.appendChild(div);
+          // Return the div containing the button and label so it can be appended elsewhere
+          return div;
+        }
+
+        function createExpandCollapseButton(optionKey, contentSelector) {
+          let expandCollapseBtn = document.createElement("a");
+          expandCollapseBtn.className = "smallFancyButton";
+          expandCollapseBtn.innerText =
+            settings.options.indexOf(optionKey) !== -1
+              ? ACABMTranslate("optionCollapse")
+              : ACABMTranslate("optionExpand");
+          expandCollapseBtn.onclick = function () {
+            const isExpanded = settings.options.indexOf(optionKey) !== -1;
+            if (isExpanded) {
+              settings.options.splice(settings.options.indexOf(optionKey), 1);
+            } else {
+              settings.options.push(optionKey);
+            }
+            PlaySound("snd/tick.mp3");
+            expandCollapseBtn.innerText =
+              settings.options.indexOf(optionKey) !== -1
+                ? ACABMTranslate("optionCollapse")
+                : ACABMTranslate("optionExpand");
+            // Dynamically update the display of related content
+            document
+              .querySelectorAll(contentSelector)
+              .forEach(function (content) {
+                content.style.display = isExpanded ? "none" : "block";
+              });
+          };
+          return expandCollapseBtn;
         }
 
         const listing = document.createElement("div");
         listing.className = "listing";
 
+        // Create buttons for the "autobuy", "wrinklers", and "gold" options.
         let a = document.createElement("a");
         const smallFancyButtonClass = "smallFancyButton";
         const prefButtonClass = "prefButton";
@@ -2748,6 +2765,7 @@
           const newValue = (settings[id] + 1) % Object.entries(values).length;
           settings[id] = newValue;
 
+          // Expand if Expand is not set and the option is turned on.
           if (
             id === "autobuy" &&
             settings[id] &&
@@ -2766,122 +2784,77 @@
             settings.options.indexOf("AGExpand") == -1
           ) {
             settings.options.push("AGExpand");
+          } else if (id === "hotkeys") {
+            document
+              .querySelectorAll(".hotkeysContent")
+              .forEach(function (content) {
+                content.style.display = settings["hotkeys"] ? "block" : "none";
+              });
+          } else if (id === "main") {
+            document
+              .querySelectorAll(".mainContent")
+              .forEach(function (content) {
+                content.style.display = settings["main"] ? "block" : "none";
+              });
           }
 
           PlaySound("snd/tick.mp3");
-          Game.UpdateMenu();
+          a.classList.toggle("off");
+          a.innerText = `${name} ${values[settings[id]]}`;
         };
 
         listing.appendChild(a);
 
+        // Add expand/collapse button for the "autobuy", "wrinklers", and "gold" options.
         if (id === "autobuy") {
-          let a = document.createElement("a");
-          a.className = `smallFancyButton`;
-          a.innerText = `${
-            settings.options.indexOf("ABExpand") != -1
-              ? ACABMTranslate("optionCollapse")
-              : ACABMTranslate("optionExpand")
-          }`;
-          a.onclick = function () {
-            if (settings.options.indexOf("ABExpand") != -1) {
-              settings.options.splice(settings.options.indexOf("ABExpand"), 1);
-            } else {
-              settings.options.push("ABExpand");
-            }
-            PlaySound("snd/tick.mp3");
-            Game.UpdateMenu();
-          };
-          listing.appendChild(a);
+          let expandCollapseBtn = createExpandCollapseButton(
+            "ABExpand",
+            ".autobuyContent"
+          );
+          listing.appendChild(expandCollapseBtn);
         }
 
         if (id === "wrinklers") {
-          let a = document.createElement("a");
-          a.className = `smallFancyButton`;
-          a.innerText = `${
-            settings.options.indexOf("AWExpand") != -1
-              ? ACABMTranslate("optionCollapse")
-              : ACABMTranslate("optionExpand")
-          }`;
-          a.onclick = function () {
-            if (settings.options.indexOf("AWExpand") != -1) {
-              settings.options.splice(settings.options.indexOf("AWExpand"), 1);
-            } else {
-              settings.options.push("AWExpand");
-            }
-            PlaySound("snd/tick.mp3");
-            Game.UpdateMenu();
-          };
-          listing.appendChild(a);
+          let expandCollapseBtn = createExpandCollapseButton(
+            "AWExpand",
+            ".wrinklersContent"
+          );
+          listing.appendChild(expandCollapseBtn);
         }
 
         if (id === "gold") {
-          let a = document.createElement("a");
-          a.className = `smallFancyButton`;
-          a.innerText = `${
-            settings.options.indexOf("AGExpand") != -1
-              ? ACABMTranslate("optionCollapse")
-              : ACABMTranslate("optionExpand")
-          }`;
-          a.onclick = function () {
-            if (settings.options.indexOf("AGExpand") != -1) {
-              settings.options.splice(settings.options.indexOf("AGExpand"), 1);
-            } else {
-              settings.options.push("AGExpand");
-            }
-            PlaySound("snd/tick.mp3");
-            Game.UpdateMenu();
-          };
-          listing.appendChild(a);
+          let expandCollapseBtn = createExpandCollapseButton(
+            "AGExpand",
+            ".goldContent"
+          );
+          listing.appendChild(expandCollapseBtn);
         }
 
         var label = document.createElement("label");
         label.innerText = `(${description})`;
         listing.appendChild(label);
 
-        if (id === "autobuy" && settings[id]) {
-          var labelabmsg = document.createElement("div");
-          labelabmsg.innerHTML = `<p><h2 style="font-size:1em;">${
-            abmessage["buy"] !== undefined ? abmessage["buy"] : ""
-          }</h2></p>`;
-          listing.appendChild(labelabmsg);
-          let a = document.createElement("a");
-          a.className = `smallFancyButton`;
-          a.innerText = `${ACABMTranslate("autobuyMR")}`;
-          a.onclick = function () {
-            PlaySound("snd/tick.mp3");
-            Game.UpdateMenu();
-          };
-          listing.appendChild(a);
-          var label = document.createElement("label");
-          label.innerText = `( ${ACABMTranslate("autobuyMRDescription")} )`;
-          listing.appendChild(label);
+        if (id === "autobuy") {
+          updateMessageContent(id, "ABMsg", listing);
         }
 
-        if (id === "ascendluck" && abmessage["ALmsg"]) {
-          var labelalmsg = document.createElement("div");
-          labelalmsg.innerHTML = `<p><h2 style="font-size:1em;">${abmessage["ALmsg"]}</h2></p>`;
-          listing.appendChild(labelalmsg);
+        if (id === "ascendluck") {
+          updateMessageContent(id, "ALmsg", listing);
         }
 
-        if (id === "krumblor" && abmessage["AKmsg"]) {
-          var labelakmsg = document.createElement("div");
-          labelakmsg.innerHTML = `<p><h2 style="font-size:1em;">${abmessage["AKmsg"]}</h2></p>`;
-          listing.appendChild(labelakmsg);
+        if (id === "krumblor") {
+          updateMessageContent(id, "AKmsg", listing);
         }
 
-        if (id === "fortune" && abmessage["AFmsg"]) {
-          var labelalmsg = document.createElement("div");
-          labelalmsg.innerHTML = `<p><h2 style="font-size:1em;">${abmessage["AFmsg"]}</h2></p>`;
-          listing.appendChild(labelalmsg);
+        if (id === "fortune") {
+          updateMessageContent(id, "AFmsg", listing);
         }
 
-        if (
-          (id === "autobuy" &&
-            settings[id] &&
-            settings.options.indexOf("ABExpand") != -1) ||
-          (id === "autobuy" && settings.options.indexOf("ABExpand") != -1)
-        ) {
+        if (id === "autobuy") {
           var labelupgrades = document.createElement("div");
+          labelupgrades.className = "autobuyContent"; // Use class for collective styling and manipulation
+          labelupgrades.style.display =
+            settings.options.indexOf("ABExpand") !== -1 ? "block" : "none";
           labelupgrades.innerHTML = `<p></p><p><div style="font-size:1em;">${ACABMTranslate(
             "autobuyVUName"
           )} <label>${ACABMTranslate(
@@ -2908,12 +2881,20 @@
                 settings.upgradevault.push(UUP.id);
               }
               PlaySound("snd/tick.mp3");
-              Game.UpdateMenu();
+              a.classList.toggle("off");
+              a.innerText = `${UUP.name} ${
+                settings.upgradevault.indexOf(UUP.id) != -1
+                  ? `${ACABMTranslate("optionOn")}`
+                  : ` ${ACABMTranslate("optionOff")}`
+              }`;
             };
             labelupgrades.appendChild(a);
           }
 
           var labeltech = document.createElement("div");
+          labeltech.className = "autobuyContent"; // Use class for collective styling and manipulation
+          labeltech.style.display =
+            settings.options.indexOf("ABExpand") !== -1 ? "block" : "none";
           labeltech.innerHTML = `<p></p><p><div style="font-size:1em;">${ACABMTranslate(
             "autobuyVTUName"
           )} <label>${ACABMTranslate(
@@ -2940,12 +2921,20 @@
                 settings.upgradevault.push(UBP.id);
               }
               PlaySound("snd/tick.mp3");
-              Game.UpdateMenu();
+              a.classList.toggle("off");
+              a.innerText = `${UBP.name} ${
+                settings.upgradevault.indexOf(UBP.id) != -1
+                  ? `${ACABMTranslate("optionOn")}`
+                  : ` ${ACABMTranslate("optionOff")}`
+              }`;
             };
             labeltech.appendChild(a);
           }
 
           var labelbuildings = document.createElement("div");
+          labelbuildings.className = "autobuyContent"; // Use class for collective styling and manipulation
+          labelbuildings.style.display =
+            settings.options.indexOf("ABExpand") !== -1 ? "block" : "none";
           labelbuildings.innerHTML = `<p></p><p><div style="font-size:1em;">${ACABMTranslate(
             "autobuyVBName"
           )} <label>${ACABMTranslate(
@@ -2972,16 +2961,28 @@
                 settings.buildingvault.push(UBI.id);
               }
               PlaySound("snd/tick.mp3");
-              Game.UpdateMenu();
+              a.classList.toggle("off");
+              a.innerText = `${UBI.name} ${
+                settings.buildingvault.indexOf(UBI.id) != -1
+                  ? `${ACABMTranslate("optionOn")}`
+                  : ` ${ACABMTranslate("optionOff")}`
+              }`;
             };
             labelbuildings.appendChild(a);
           }
 
+          var lineDiv = document.createElement('div');
+          lineDiv.className = 'line';
+
           listing.appendChild(labelupgrades);
           listing.appendChild(labeltech);
           listing.appendChild(labelbuildings);
-        } else if (id === "hotkeys" && settings[id]) {
+          listing.appendChild(lineDiv);
+        } else if (id === "hotkeys") {
           const labelhotkeys = document.createElement("div");
+          labelhotkeys.className = "hotkeysContent"; // Use class for collective styling and manipulation
+          labelhotkeys.style.display =
+            settings.hotkeys !== 0 ? "block" : "none";
           const h4 = document.createElement("h4");
           h4.style.fontSize = "1.25em";
           h4.innerText = `${ACABMTranslate("hotkeysmenuTitle")}`;
@@ -3056,8 +3057,10 @@
           labelhotkeys.appendChild(p11);
 
           listing.appendChild(labelhotkeys);
-        } else if (id === "main" && settings[id]) {
+        } else if (id === "main") {
           var labelautoclick = document.createElement("div");
+          labelautoclick.className = "mainContent"; // Use class for collective styling and manipulation
+          labelautoclick.style.display = settings.main !== 0 ? "block" : "none";
           var slider = createSlider(
             "ACABMClickSlider",
             loc(ACABMTranslate("mainSDescription")),
@@ -3073,13 +3076,14 @@
               "'].settings.mainspeed=Number(l('ACABMClickSlider').value);l('ACABMClickSliderRightText').innerHTML=l('ACABMClickSlider').value + '/ms';"
           );
           labelautoclick.innerHTML = slider;
+
+          var lineDiv = document.createElement('div');
+          lineDiv.className = 'line';
+
+          labelautoclick.appendChild(lineDiv);
           listing.appendChild(labelautoclick);
-        } else if (
-          (id === "wrinklers" &&
-            settings[id] &&
-            settings.options.indexOf("AWExpand") != -1) ||
-          (id === "wrinklers" && settings.options.indexOf("AWExpand") != -1)
-        ) {
+          
+        } else if (id === "wrinklers") {
           if (
             settings.wrinklersmax == -1 ||
             settings.wrinklersmax > Game.getWrinklersMax() - 1
@@ -3087,6 +3091,9 @@
             settings.wrinklersmax = Game.getWrinklersMax() - 1;
           }
           var labelwrinklers = document.createElement("div");
+          labelwrinklers.className = "wrinklersContent"; // Use class for collective styling and manipulation
+          labelwrinklers.style.display =
+            settings.options.indexOf("AWExpand") !== -1 ? "block" : "none";
           var slider = createSlider(
             "ACABMWrinklersSlider",
             loc(ACABMTranslate("wrinklersSDescription")),
@@ -3102,41 +3109,107 @@
               "'].settings.wrinklersmax=Number(l('ACABMWrinklersSlider').value);l('ACABMWrinklersSliderRightText').innerHTML=l('ACABMWrinklersSlider').value;"
           );
           labelwrinklers.innerHTML = slider;
-          listing.appendChild(labelwrinklers);
-
-          createButton(
+          
+          let wrinklerspopSWbtn = createButton(
             ACABMTranslate("popSWName"),
             "popSW",
             `( ${ACABMTranslate("popSWDescription")} )`
           );
-        } else if (
-          (id === "gold" &&
-            settings[id] &&
-            settings.options.indexOf("AGExpand") != -1) ||
-          (id === "gold" && settings.options.indexOf("AGExpand") != -1)
-        ) {
-          createButton(
+          labelwrinklers.appendChild(wrinklerspopSWbtn);
+
+          var lineDiv = document.createElement('div');
+          lineDiv.className = 'line';
+
+          labelwrinklers.appendChild(lineDiv);
+          listing.appendChild(labelwrinklers);
+
+        } else if (id === "gold") {
+          var labelgold = document.createElement("div");
+          labelgold.className = "goldContent";
+          labelgold.style.display =
+            settings.options.indexOf("AGExpand") !== -1 ? "block" : "none";
+          let goldgoldenACbtn = createButton(
             ACABMTranslate("goldenACName"),
             "goldenAC",
             `( ${ACABMTranslate("goldenACDescription")} )`
           );
-          createButton(
+          labelgold.appendChild(goldgoldenACbtn);
+
+          let goldwrathACNamebtn = createButton(
             ACABMTranslate("wrathACName"),
             "wrathAC",
             `( ${ACABMTranslate("wrathACDescription")} )`
           );
-          createButton(
+          labelgold.appendChild(goldwrathACNamebtn);
+
+          let goldwrathACSbtn = createButton(
             ACABMTranslate("wrathACSName"),
             "wrathACS",
             `( ${ACABMTranslate("wrathACSDescription")} )`
           );
-          createButton(
+          labelgold.appendChild(goldwrathACSbtn);
+
+          let goldreindeerACbtn = createButton(
             ACABMTranslate("reindeerACName"),
             "reindeerAC",
             `( ${ACABMTranslate("reindeerACDescription")} )`
           );
+          labelgold.appendChild(goldreindeerACbtn);
+          
+          var lineDiv = document.createElement('div');
+          lineDiv.className = 'line';
+
+          labelgold.appendChild(lineDiv);
+          listing.appendChild(labelgold);
+
         }
         return listing;
+      }
+
+      function updateMessageContent(id, messageKey, listing = null) {
+        if (!Game.onMenu === "prefs") {
+          return;
+        }
+
+        let messageText =
+          abmessage[messageKey] !== undefined
+            ? abmessage[messageKey]
+            : " </br>";
+        let containerId = `label${id}msg`;
+        let messageContainer = document.getElementById(containerId);
+
+        if (!messageContainer) {
+          messageContainer = document.createElement("div");
+          messageContainer.id = containerId;
+          if (listing) {
+            listing.appendChild(messageContainer);
+          }
+        }
+        messageContainer.innerHTML = `<p><h2 style="font-size:1em;">${messageText}</h2></p>`;
+      }
+
+      function setMessageContent(key, value) {
+        abmessage[key] = value;
+        let id;
+        switch (key) {
+          case "ABmsg":
+            id = "autobuy";
+            break;
+          case "ALmsg":
+            id = "ascendluck";
+            break;
+          case "AKmsg":
+            id = "krumblor";
+            break;
+          case "AFmsg":
+            id = "fortune";
+            break;
+          default:
+            console.error("Invalid message key:", key);
+            return;
+        }
+
+        updateMessageContent(id, key);
       }
     },
     /**
@@ -3154,7 +3227,6 @@
 
         // Check if the data is in the old format
         const isOldData = !("wrinklersmax" in saveData);
-
         ACABMsettingsKeys.forEach((key) => {
           if (isOldData) {
             // Handle old format: Convert boolean values to numeric for non-array properties
@@ -3180,6 +3252,14 @@
             this.settings[key] = ACABMdefaultSettings[key];
           }
         });
+
+        // Reset Controller if it was already loaded
+        // This is necessary for the Controller to be re-initialized when the settings are loaded when the mod is already loaded (initialized).
+        if (ACABMLoaded === true) {
+          // ACABM.controller.onReset(); // It's boken, bad times.
+        } else {
+          ACABMLoaded = true;
+        }
       }
     },
     /**
