@@ -130,6 +130,13 @@
       notifyDescriptionText: "Turn settings On/Off in the",
       notifyDescriptionLink: "Options",
       notifyDescriptionMenu: "Menu.",
+      sellallName: "Sell All Buildings",
+      sellallDescription:
+        'Adds a "Sell All". Button to the store that sells all buildings, with option to Ascend after selling.',
+      sellAllAscendName: "Ascend After Selling",
+      sellAllAscendDescription:
+        "Automatically Ascends after selling all buildings.",
+      sellallSellAllbtn: "Sell All",
     },
     FR: {
       // French translations
@@ -1268,6 +1275,7 @@
     wrinklersmax: -1, // Max amount of Wrinklers to pop automatically
     krumblor: 0, // AutoPet Krumblor
     hotkeys: 0, // Hotkeys
+    sellall: 0, // Sell All Buildings
     upgradevault: [], // List of upgrades to vault
     buildingvault: [], // List of buildings to vault
     options: ["goldenAC", "wrathAC", "reindeerAC"], // Options for AutoClick Special
@@ -1410,6 +1418,14 @@
         krumblor: {
           name: ACABMTranslate("krumblorName"),
           description: ACABMTranslate("krumblorDescription"),
+          values: {
+            0: ACABMTranslate("optionOff"),
+            1: ACABMTranslate("optionOn"),
+          },
+        },
+        sellall: {
+          name: ACABMTranslate("sellallName"),
+          description: ACABMTranslate("sellallDescription"),
           values: {
             0: ACABMTranslate("optionOff"),
             1: ACABMTranslate("optionOn"),
@@ -1648,8 +1664,9 @@
             togglesettings: { delay: 50, func: () => this.toggleSettings() },
             guard: { delay: 100, func: () => this.guard() },
             autobuy: { delay: 200, func: () => this.autobuy() },
-            status: { delay: 0, func: () => this.status() },
-            protect: { delay: 0, func: () => this.toggleProtect() },
+            status: { delay: 50, func: () => this.status() },
+            protect: { delay: 50, func: () => this.toggleProtect() },
+            sellall: { delay: 50, func: () => this.sellall() },
             main: {
               delay: ACABM.settings.mainspeed,
               func: () => this.clickCookie(),
@@ -1676,6 +1693,10 @@
             this.lastTick[actionName] = undefined;
           }
 
+          if (ACABM.settings.autobuy === 1) {
+            Game.storeBulkButton(0); // Reset the store to buy mode
+          }
+
           // Reactivate actions as needed
           this.activateGuard();
           this.activateSettings();
@@ -1689,7 +1710,7 @@
           } else if (loading && ACABM.settings[name] === 0) {
             this.actionStates[name] = false; // Deactivate action
           }
-          if (name === "status" || name === "protect") {
+          if (name === "status" || name === "protect" || name === "sellall") {
             this.actions[name].func(); // Execute immediately if needed
           }
         }
@@ -1744,12 +1765,10 @@
 
         activateGuard() {
           this.actionStates["guard"] = true;
-          // this.toggleAction("guard");
         }
 
         activateSettings() {
           this.actionStates["togglesettings"] = true;
-          // this.toggleAction("togglesettings");
         }
 
         clickCookie() {
@@ -1894,47 +1913,45 @@
             var minutes = Math.floor(seconds / 60); // Calculate minutes
             seconds %= 60; // Update seconds
             var parts = [];
-          
+
             if (days > 0)
-              parts.push(ACABMTranslate(days == 1 ? "autobuyMDay" : "autobuyMDays", days));
+              parts.push(
+                ACABMTranslate(days == 1 ? "autobuyMDay" : "autobuyMDays", days)
+              );
             if (hours > 0)
-              parts.push(ACABMTranslate(hours == 1 ? "autobuyMHour" : "autobuyMHours", hours));
+              parts.push(
+                ACABMTranslate(
+                  hours == 1 ? "autobuyMHour" : "autobuyMHours",
+                  hours
+                )
+              );
             if (minutes > 0)
-              parts.push(ACABMTranslate(minutes == 1 ? "autobuyMMinute" : "autobuyMMinutes", minutes));
-            
+              parts.push(
+                ACABMTranslate(
+                  minutes == 1 ? "autobuyMMinute" : "autobuyMMinutes",
+                  minutes
+                )
+              );
+
             // If there are minutes, don't apply parseFloat
             if (minutes === 0 && seconds < 60) {
               seconds = parseFloat(seconds).toFixed(2); // Less than a minute, keep decimals
             } else {
               seconds = Math.floor(seconds); // Over a minute, round down
             }
-          
+
             // Only add seconds if they are greater than 0 or if it's the only component
-            if (seconds > 0 || days === 0 && hours === 0 && minutes === 0) {
-              parts.push(ACABMTranslate(seconds == 1 ? "autobuyMSecond" : "autobuyMSeconds", seconds));
+            if (seconds > 0 || (days === 0 && hours === 0 && minutes === 0)) {
+              parts.push(
+                ACABMTranslate(
+                  seconds == 1 ? "autobuyMSecond" : "autobuyMSeconds",
+                  seconds
+                )
+              );
             }
-          
+
             return parts.join(", ");
           }
-          
-          
-
-          /*
-          if (this.lastTick["buy"]) {
-            abmessage["ABmsg"] = ACABMTranslate(
-              "autobuyMWaiting",
-              Beautify(
-                Math.floor(
-                  (this.target.price - Game.cookies) / this.calc.ecps()
-                ),
-                1
-              ),
-              this.target.name
-            );
-            setMessageContent("ABmsg", abmessage["ABmsg"]);
-            return;
-          }
-          */
 
           var info = this.calc.find_best(
             this.actionStates["main"] ? 1000 / this.actions.main.delay : 0
@@ -2484,7 +2501,6 @@
         toggleProtect() {
           if (ACABM.settings["protect"] === 0) {
             this.protect = false;
-            //this.unqueue_action("buy");
           } else {
             this.protect = true;
           }
@@ -2526,9 +2542,47 @@
                 : " delay cannot be set under 50ms")
           );
         }
-      }
 
-      // ACABM.controller = new Controller();
+        sellall() {
+            if (ACABM.settings["sellall"] === 0) {
+              this.removeSellAllButton();
+            } else {
+              this.createSellAllButton();
+            }
+        }
+
+        createSellAllButton() {
+          var storeBulkMax = document.getElementById("storeBulkMax");
+          if (
+            storeBulkMax &&
+            !document.getElementById("sellAllBuildingsButton")
+          ) {
+            var sellAllButton = document.createElement("div");
+            sellAllButton.id = "sellAllBuildingsButton";
+            sellAllButton.className = "storePreButton storeBulkAmount";
+            sellAllButton.style.cursor = "pointer";
+            sellAllButton.style.position = "absolute";
+            sellAllButton.style.visibility = "visible";
+            sellAllButton.style.left = storeBulkMax.offsetLeft + "px";
+            sellAllButton.style.top = "0px";
+            sellAllButton.textContent = ACABMTranslate("sellallSellAllbtn");
+            sellAllButton.onclick = function () {
+              Game.mods[ACABMName].sellAll();
+            };
+            storeBulkMax.parentNode.insertBefore(
+              sellAllButton,
+              storeBulkMax.nextSibling
+            );
+          }
+        }
+
+        removeSellAllButton() {
+          var sellAllButton = document.getElementById("sellAllBuildingsButton");
+          if (sellAllButton) {
+            sellAllButton.remove();
+          }
+        }
+      }
 
       /**
        * Object representing the view of the autoclickandbuyMod.
@@ -2840,6 +2894,12 @@
               .querySelectorAll(".mainContent")
               .forEach(function (content) {
                 content.style.display = settings["main"] ? "block" : "none";
+              });
+          } else if (id === "sellall") {
+            document
+              .querySelectorAll(".sellallContent")
+              .forEach(function (content) {
+                content.style.display = settings["sellall"] ? "block" : "none";
               });
           }
 
@@ -3204,7 +3264,20 @@
 
           labelgold.appendChild(lineDiv);
           listing.appendChild(labelgold);
+        } else if (id === "sellall") {
+          var labelsellall = document.createElement("div");
+          labelsellall.className = "sellallContent"; // Use class for collective styling and manipulation
+          labelsellall.style.display = settings.sellall !== 0 ? "block" : "none";
+
+          let sellAllAscendBtn = createButton(
+            ACABMTranslate("sellAllAscendName"),
+            "sellAllAscend",
+            `( ${ACABMTranslate("sellAllAscendDescription")} )`
+          );
+          labelsellall.appendChild(sellAllAscendBtn);
+          listing.appendChild(labelsellall);
         }
+
         return listing;
       }
 
@@ -3254,6 +3327,24 @@
         }
 
         updateMessageContent(id, key);
+      }
+    },
+    // Sells all buildings and ascends if the setting is enabled
+    sellAll: function () {
+      // Check if ACABM's autobuy feature is enabled before selling
+      if (this.settings.autobuy === 1) {
+        Game.storeBulkButton(1); // Ensure the game is in Sell Mode
+      }
+
+      // Sell all buildings
+      Game.ObjectsById.forEach(function (building) {
+        building.sell(building.amount);
+      });
+
+      // Ascend if the option is enabled, after selling the buildings
+      if (this.settings.options.indexOf("sellAllAscend") !== -1) {
+        Game.Ascend(1);
+        Game.ClosePrompt();
       }
     },
     /**
