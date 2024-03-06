@@ -680,7 +680,7 @@
             const availableBuildings = Game.ObjectsById.filter(function (
               building
             ) {
-              return autoBuy.settings.buildingVault.includes(building.id);
+              return !autoBuy.settings.buildingVault.includes(building.id);
             });
 
             // Check if buildings are available after filtering
