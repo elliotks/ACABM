@@ -171,7 +171,7 @@ const exampleModule = {
 
 ### UIManager
 
-```
+```js
 var UIManager = {
   createOptionsMenu() {
     // ... (other modules)
