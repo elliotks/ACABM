@@ -688,8 +688,8 @@
               return;
             }
 
-            // Find the cheapest building not in the vault // availableBuildings.reduce(function (
-            const cheapestBuilding = Game.ObjectsById.reduce(function (
+            // Find the cheapest building not in the vault
+            const cheapestBuilding = availableBuildings.reduce(function (
               prev,
               curr
             ) {
