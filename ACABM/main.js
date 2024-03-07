@@ -541,12 +541,6 @@
             (w) => w.type !== 0 && w.sucked > 0
           );
 
-          // Initialize maxWrinklers setting if not already set
-          if (this.settings.maxWrinklers == -1) {
-            this.settings.maxWrinklers = Game.getWrinklersMax() - 1;
-            this.settingsUI.maxWrinklers.max = this.settings.maxWrinklers;
-          }
-
           if (
             wrinklersNormal.length + wrinklersShiny.length >
               this.settings.maxWrinklers ||
@@ -594,9 +588,7 @@
      */
     init() {
       // Initialize maxWrinklers setting if not already set
-      if (this.settings.maxWrinklers == -1) {
-        this.settings.maxWrinklers = Game.getWrinklersMax() - 1;
-      }
+
       var loadedSettings = SettingsManager.loadModuleSettings(this.id);
       if (loadedSettings) {
         this.settings = { ...this.settings, ...loadedSettings };
@@ -604,6 +596,13 @@
           this.start();
         }
       }
+
+      if (this.settings.maxWrinklers == -1) {
+        this.settings.maxWrinklers = Game.getWrinklersMax() - 1;
+        this.settingsUI.maxWrinklers.max = this.settings.maxWrinklers;
+        SettingsManager.updateModuleSettings(this.id, { maxWrinklers: this.settings.maxWrinklers });
+      }
+
     },
     /**
      * Starts the module.
@@ -1660,9 +1659,8 @@
      * @returns {void}
      */
     addModuleSettingsToMenu(modules) {
-      const menu = l("menu");
-      const sections = menu.getElementsByClassName("block");
-      const lastSection = sections[sections.length - 1];
+      const menu = document.getElementById("menu");
+      const sections = menu.querySelector(".section");
 
       const block = document.createElement("div");
       block.className = "block";
@@ -1722,7 +1720,8 @@
           }
         });
       });
-      menu.insertBefore(block, lastSection.nextSibling);
+
+      menu.insertBefore(block, sections.nextSibling.nextSibling.nextSibling);
     },
 
     /**
