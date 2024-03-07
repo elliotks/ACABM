@@ -3,7 +3,7 @@
     "ID": "ACABM",
     "Author": "Mafukie",
     "Description": "Cookie clicker Auto Click and Buy Mod.",
-    "ModVersion": 3.0.0,
+    "ModVersion": 3.00,
     "GameVersion": 2.048,
     "Date": "3/06/2024",
     "Dependencies": [],

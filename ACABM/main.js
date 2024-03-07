@@ -495,7 +495,7 @@
       enabled: false, // Module is disabled by default.
       delay: 2000, // Delay between checks
       popShiny: false, // By default, do not pop shiny wrinklers.
-      maxWrinklers: Game.getWrinklersMax() - 1, // Default value to determine when to pop wrinklers.
+      maxWrinklers: -1, // Default value to determine when to pop wrinklers.
     },
     settingsUI: {
       enabled: {
@@ -518,7 +518,7 @@
         type: "slider",
         label: "Max Wrinklers",
         min: 1,
-        max: Game.getWrinklersMax() - 1,
+        max: 9,
         step: 1,
       },
     },
@@ -544,6 +544,7 @@
           // Initialize maxWrinklers setting if not already set
           if (this.settings.maxWrinklers == -1) {
             this.settings.maxWrinklers = Game.getWrinklersMax() - 1;
+            this.settingsUI.maxWrinklers.max = this.settings.maxWrinklers;
           }
 
           if (
@@ -592,6 +593,10 @@
      * Loads settings from SettingsManager and starts the module if enabled.
      */
     init() {
+      // Initialize maxWrinklers setting if not already set
+      if (this.settings.maxWrinklers == -1) {
+        this.settings.maxWrinklers = Game.getWrinklersMax() - 1;
+      }
       var loadedSettings = SettingsManager.loadModuleSettings(this.id);
       if (loadedSettings) {
         this.settings = { ...this.settings, ...loadedSettings };
@@ -1514,12 +1519,11 @@
               `"${info.obj.name}"`
           );
         } else if (wait < 0) {
-          
           UIManager.updateModuleStatusMessage(
             this.id,
             "Buying: " + `"${info.obj.name}"`
           );
-                   
+
           // Guard against buying before having enough cookies.
           var t = this.total;
           this.total =
