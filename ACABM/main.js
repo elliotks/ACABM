@@ -600,9 +600,10 @@
       if (this.settings.maxWrinklers == -1) {
         this.settings.maxWrinklers = Game.getWrinklersMax() - 1;
         this.settingsUI.maxWrinklers.max = this.settings.maxWrinklers;
-        SettingsManager.updateModuleSettings(this.id, { maxWrinklers: this.settings.maxWrinklers });
+        SettingsManager.updateModuleSettings(this.id, {
+          maxWrinklers: this.settings.maxWrinklers,
+        });
       }
-
     },
     /**
      * Starts the module.
@@ -1147,6 +1148,7 @@
       upgradeVault: [], // Stores IDs of upgrades
       techVault: [], // Stores IDs of tech upgrades
       buildingVault: [], // Stores IDs of buildings
+      popupWindowMessage: false,
     },
     settingsUI: {
       enabled: {
@@ -1158,6 +1160,16 @@
           // Define custom actions for this toggle
           start: () => autoBuy.start(),
           stop: () => autoBuy.stop(),
+        },
+      },
+      popupWindowMessage: {
+        type: "toggle",
+        label: "Popup Window",
+        description:
+          "Displays Auto-Buy status message in a draggable popup window under big cookie.",
+        actions: {
+          // Define custom actions for this toggle
+          stop: () => autoBuy.closePopupWindow(),
         },
       },
       upgradeVault: {
@@ -1565,6 +1577,10 @@
       this.settings.enabled = false;
       // Update settings in SettingsManager
       SettingsManager.updateModuleSettings(this.id, { enabled: false });
+      UIManager.removePopup();
+    },
+    closePopupWindow() {
+      UIManager.removePopup();
     },
     /**
      * Initializes the module.
@@ -1934,30 +1950,144 @@
      * @param {string} message - The new status message to be set.
      */
     updateModuleStatusMessage(moduleId, message) {
-      // First, find the button related to the moduleName using data-module-name attribute
-      const button = document.querySelector(`[data-module-name="${moduleId}"]`);
-      if (!button) return; // Exit if the button is not found
+      // Check if the module has a custom popup message setting
+      var settings = SettingsManager.loadModuleSettings(moduleId);
+      if (settings.popupWindowMessage) {
+        this.updatePopupContent(message);
+      } else {
+        // Fallback to original behavior if popupMessage is false or not set
 
-      // Get the parent element of the button, which should be the div container
-      const listingDiv = button.parentElement;
+        // First, find the button related to the moduleName using data-module-name attribute
+        const button = document.querySelector(
+          `[data-module-name="${moduleId}"]`
+        );
+        if (!button) return; // Exit if the button is not found
 
-      // Ensure the message area for the module exists; if not, create it
-      let messageArea = document.getElementById(`${moduleId}-StatusMessage`);
-      if (!messageArea) {
-        // Create the message area since it doesn't exist
-        messageArea = document.createElement("div");
-        messageArea.id = `${moduleId}-StatusMessage`;
-        messageArea.style.fontSize = "0.8rem"; // Adjust font size as needed
-        listingDiv.appendChild(messageArea); // Append the message area to the listing div
+        // Get the parent element of the button, which should be the div container
+        const listingDiv = button.parentElement;
+
+        // Ensure the message area for the module exists; if not, create it
+        let messageArea = document.getElementById(`${moduleId}-StatusMessage`);
+        if (!messageArea) {
+          // Create the message area since it doesn't exist
+          messageArea = document.createElement("div");
+          messageArea.id = `${moduleId}-StatusMessage`;
+          messageArea.style.fontSize = "0.8rem"; // Adjust font size as needed
+          listingDiv.appendChild(messageArea); // Append the message area to the listing div
+        }
+
+        // Check if the current message in the area is different from the new message to be set
+        const currentMessage = messageArea.querySelector("h2")
+          ? messageArea.querySelector("h2").innerHTML
+          : "";
+        if (currentMessage !== message) {
+          // Update the message content only if it's different
+          messageArea.innerHTML = `<p><h2 style="font-size:1em;">${message}</h2></p>`;
+        }
+      }
+    },
+
+    createDraggablePopup() {
+      if (!document.getElementById(`${modID}Popup`)) {
+        var modPopup = document.createElement("div");
+        modPopup.id = `${modID}Popup`;
+        modPopup.style.position = "fixed";
+        modPopup.style.zIndex = "10000";
+        modPopup.style.background = "rgba(0,0,0,0.2)";
+        modPopup.style.borderRadius = "5px";
+        modPopup.style.padding = "10px";
+        modPopup.style.boxShadow = "3px 3px 5px rgba(0,0,0,0.3)";
+
+        var header = document.createElement("div");
+        header.id = `${modID}PopupHeader`;
+        header.className = "content";
+        header.style.marginBottom = "10px";
+        header.style.fontWeight = "bold";
+        // header.style.textAlign = "center";
+        header.style.cursor = "move";
+        header.textContent = "Auto-Buy Status";
+
+        var content = document.createElement("div");
+        content.id = `${modID}PopupContent`;
+        content.textContent = "Initializing...";
+
+        var sectionRight = document.getElementById("sectionRight");
+        if (sectionRight) {
+          var rightRect = sectionRight.getBoundingClientRect();
+          modPopup.style.width = `${rightRect.width}px`; // Set the popup width to match sectionRight
+        }
+
+        modPopup.appendChild(header);
+        modPopup.appendChild(content);
+
+        // Append the popup
+        document.querySelector("#game").appendChild(modPopup);
+
+        // Position the popup under #bigCookie
+        var bigCookie = document.getElementById("bigCookie");
+        if (bigCookie) {
+          var rect = bigCookie.getBoundingClientRect();
+          modPopup.style.position = "fixed";
+          modPopup.style.left = `${
+            rect.left +
+            window.scrollX +
+            bigCookie.offsetWidth / 2 -
+            modPopup.offsetWidth / 2
+          }px`;
+          modPopup.style.top = `${rect.bottom + window.scrollY + 200}px`; // 10px for a little spacing from the bottom
+        }
+
+        // Add dragging functionality
+        this.addDragFunctionality(modPopup);
+      }
+    },
+
+    removePopup() {
+      var popup = document.getElementById(`${modID}Popup`);
+      if (popup) {
+        popup.parentNode.removeChild(popup);
+      }
+    },
+
+    updatePopupContent(message) {
+      var modPopup = document.getElementById(`${modID}Popup`);
+      if (modPopup) {
+        // document.getElementById(`${modID}PopupHeader`).textContent = title;
+        document.getElementById(`${modID}PopupContent`).textContent = message;
+      } else {
+        this.createDraggablePopup(); // Create the popup if it doesn't exist
+        this.updatePopupContent(message); // Update content after creation
+      }
+    },
+
+    addDragFunctionality(modPopup) {
+      var pos1 = 0,
+        pos2 = 0,
+        pos3 = 0,
+        pos4 = 0;
+      var modPopupHeader = document.getElementById(`${modID}PopupHeader`);
+
+      modPopupHeader.onmousedown = function (e) {
+        e.preventDefault();
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.onmouseup = closeDragElement;
+        document.onmousemove = elementDrag;
+      };
+
+      function elementDrag(e) {
+        e.preventDefault();
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        modPopup.style.top = modPopup.offsetTop - pos2 + "px";
+        modPopup.style.left = modPopup.offsetLeft - pos1 + "px";
       }
 
-      // Check if the current message in the area is different from the new message to be set
-      const currentMessage = messageArea.querySelector("h2")
-        ? messageArea.querySelector("h2").innerHTML
-        : "";
-      if (currentMessage !== message) {
-        // Update the message content only if it's different
-        messageArea.innerHTML = `<p><h2 style="font-size:1em;">${message}</h2></p>`;
+      function closeDragElement() {
+        document.onmouseup = null;
+        document.onmousemove = null;
       }
     },
 
