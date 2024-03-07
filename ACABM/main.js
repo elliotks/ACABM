@@ -98,6 +98,7 @@
    * @property {string} id - Unique identifier for the Auto-Clicker module.
    * @property {string} name - Friendly name of the Auto-Clicker module.
    * @property {Object} settings - Settings for the Auto-Clicker module.
+   * @property {boolean} settings.collapsed - Indicates whether the settings are collapsed or not.
    * @property {boolean} settings.enabled - Indicates whether the Auto-Clicker is enabled or not.
    * @property {number} settings.delay - The delay (in milliseconds) between each click.
    * @property {Object} settingsUI - User interface settings for the Auto-Clicker module.
@@ -122,6 +123,7 @@
     id: "autoClicker", // Unique identifier
     name: "Auto-Clicker", // Friendly name of the AutoClicker module
     settings: {
+      collapsed: false,
       enabled: false,
       delay: 50,
       frenzy: false,
@@ -214,6 +216,7 @@
    * @property {string} id - The unique identifier of the shimmer clicker.
    * @property {string} name - The name of the shimmer auto-clicker.
    * @property {Object} settings - The settings for the shimmer auto-clicker.
+   * @property {boolean} settings.collapsed - Indicates whether the settings are collapsed or not.
    * @property {boolean} settings.enabled - Overall module toggle.
    * @property {number} settings.delay - Delay between checks.
    * @property {boolean} settings.golden - Whether to click on golden cookies.
@@ -254,6 +257,7 @@
     id: "shimmerClicker",
     name: "Shimmer Auto-Clicker",
     settings: {
+      collapsed: false,
       enabled: false, // Overall module toggle
       delay: 50, // Delay between checks
       golden: true,
@@ -369,6 +373,7 @@
    * @property {string} id - Unique identifier for the module.
    * @property {string} name - Friendly name of the module.
    * @property {Object} settings - Module settings.
+   * @property {boolean} settings.collapsed - Indicates whether the settings are collapsed or not.
    * @property {boolean} settings.enabled - Indicates if the module is enabled.
    * @property {number} settings.delay - Delay between logic checks.
    * @property {Object} settingsUI - User interface settings for the module.
@@ -389,6 +394,7 @@
     id: "fortuneClicker", // Unique identifier for the module
     name: "Fortune Auto-Clicker", // Friendly name of the module
     settings: {
+      collapsed: false,
       enabled: false, // By default, the module is not enabled
       delay: 2000, // Delay between logic checks
     },
@@ -474,6 +480,7 @@
    * @property {string} id - The unique identifier of the module.
    * @property {string} name - The name of the module.
    * @property {Object} settings - The settings for the module.
+   * @property {boolean} settings.collapsed - Indicates whether the settings are collapsed or not.
    * @property {boolean} settings.enabled - Indicates whether the module is enabled or not.
    * @property {number} settings.delay - The delay between checks in milliseconds.
    * @property {boolean} settings.popShiny - Indicates whether to pop shiny wrinklers or not.
@@ -492,6 +499,7 @@
     id: "wrinklersPopper",
     name: "Wrinklers Auto-Popper",
     settings: {
+      collapsed: false,
       enabled: false, // Module is disabled by default.
       delay: 2000, // Delay between checks
       popShiny: false, // By default, do not pop shiny wrinklers.
@@ -629,6 +637,7 @@
    * @property {string} id - The unique identifier for the module.
    * @property {string} name - The name of the module.
    * @property {Object} settings - The settings for the module.
+   * @property {boolean} settings.collapsed - Indicates whether the settings are collapsed or not.
    * @property {boolean} settings.enabled - Indicates whether the module is enabled or disabled.
    * @property {number} settings.delay - The delay between logic checks.
    * @property {Object} settingsUI - The user interface settings for the module.
@@ -649,6 +658,7 @@
     id: "autopetKrumblor",
     name: "Auto-Pet Krumblor",
     settings: {
+      collapsed: false,
       enabled: false, // Module is disabled by default.
       delay: 500, // Delay between logic checks
     },
@@ -763,6 +773,7 @@
    * @property {string} id - The unique identifier of the module.
    * @property {string} name - The name of the module.
    * @property {Object} settings - The settings of the module.
+   * @property {boolean} settings.collapsed - Indicates whether the settings are collapsed or not.
    * @property {boolean} settings.enabled - Indicates whether the module is enabled or not.
    * @property {Object} settingsUI - The user interface settings of the module.
    * @property {Object} settingsUI.enabled - The settings for enabling the module.
@@ -783,6 +794,7 @@
     id: "ascendLuck",
     name: "Ascend Luck",
     settings: {
+      collapsed: false,
       enabled: false, // Module is disabled by default.
     },
     settingsUI: {
@@ -962,6 +974,7 @@
    * @property {string} id - The ID of the feature.
    * @property {string} name - The name of the feature.
    * @property {Object} settings - The settings for the feature.
+   * @property {boolean} settings.collapsed - Indicates whether the settings are collapsed or not.
    * @property {boolean} settings.enabled - Indicates whether the feature is enabled or disabled.
    * @property {number} settings.delay - The delay in milliseconds between each execution of the feature.
    * @property {boolean} settings.ascendAfterSelling - Indicates whether to automatically ascend after selling all buildings.
@@ -991,6 +1004,7 @@
     id: "sellAll",
     name: "Sell All Buildings",
     settings: {
+      collapsed: false,
       enabled: false,
       delay: 1000,
       ascendAfterSelling: false,
@@ -1107,6 +1121,7 @@
    * @property {string} id - Unique identifier for the autoBuy module.
    * @property {string} name - Name of the autoBuy module.
    * @property {Object} settings - Settings for the autoBuy module.
+   * @property {boolean} settings.collapsed - Indicates whether the settings are collapsed or not.
    * @property {boolean} settings.enabled - Indicates whether the autoBuy module is enabled or not.
    * @property {number} settings.delay - Delay between purchases.
    * @property {boolean} settings.protect - Indicates whether the autoBuy module should protect against going under Lucky and Frenzy requirements.
@@ -1141,6 +1156,7 @@
     id: "autoBuy", // Unique identifier
     name: "Auto-Buy", // Name of the autoBuy module
     settings: {
+      collapsed: false,
       enabled: false,
       delay: 50, // delay between purchases
       protect: false, // Indicates whether
@@ -1695,49 +1711,97 @@
       subsection.appendChild(title);
 
       modules.forEach((module) => {
+        // Create module title container
         const moduleTitle = document.createElement("div");
         moduleTitle.className = "title";
         moduleTitle.style.fontSize = "1rem";
-        moduleTitle.textContent = `${module.name}`;
+        moduleTitle.textContent = `${module.name} `;
         subsection.appendChild(moduleTitle);
+      
+        // Create toggle button within moduleTitle
+        const toggleButton = document.createElement("span");
+        toggleButton.textContent = "[+]";
+        toggleButton.style.cursor = "pointer";
+        toggleButton.style.marginLeft = "4px";
+        moduleTitle.appendChild(toggleButton);
+      
+        // Create settings container
         const listing = document.createElement("div");
         listing.className = "listing";
+        listing.style.display = "none"; // Initially collapsed
         subsection.appendChild(listing);
-
+      
+        // Toggle visibility on click
+        toggleButton.addEventListener('click', function() {
+          const isVisible = listing.style.display !== "none";
+          listing.style.display = isVisible ? "none" : "block";
+          toggleButton.textContent = isVisible ? "[+]" : "[-]";
+      
+          // Update module settings for persistence (assumed structure, adjust as needed)
+          module.settings.collapsed = isVisible;
+          // Save settings (this will vary based on your mod's implementation)
+          SettingsManager.updateModuleSettings(module.id, { collapsed: isVisible});
+        });
+      
+        // Populate listing based on module.settingsUI
         Object.keys(module.settingsUI).forEach((key) => {
           const setting = module.settingsUI[key];
-          switch (setting.type) {
-            case "toggle":
-              const toggleButton = this.createToggleButton(
-                module,
-                key,
-                setting.label,
-                setting.description,
-                listing,
-                setting.actions || {} // Pass the actions if defined
-              );
-              listing.appendChild(toggleButton);
-              break;
-            case "slider":
-              const sliderElement = this.createSlider(
-                module,
-                key,
-                setting,
-                listing
-              );
-              listing.appendChild(sliderElement);
-              break;
-            case "complex":
-              if (typeof setting.action === "function") {
-                setting.action(listing); // Dynamically create complex UI components
-              }
-              break;
-            // Include other UI elements as necessary
+          const element = this.createUIElement(module, key, setting, listing);
+          if (element) {
+            listing.appendChild(element);
           }
         });
-      });
+      
+        // Restore visibility state from module settings
+        if (!module.settings.collapsed) {
+          listing.style.display = "block";
+          toggleButton.textContent = "[-]";
+        }
+      });      
 
       menu.insertBefore(block, sections.nextSibling.nextSibling.nextSibling);
+    },
+    /**
+     * Creates a UI element based on the provided setting type.
+     *
+     * @param {Object} module - The module object.
+     * @param {string} key - The key of the setting.
+     * @param {Object} setting - The setting object.
+     * @param {HTMLElement} container - The container element to append the UI element to.
+     * @returns {HTMLElement|null} The created UI element or null if the setting type is unsupported.
+     */
+    createUIElement(module, key, setting, container) {
+      switch (setting.type) {
+        case "toggle":
+          return this.createToggleButton(
+            module,
+            key,
+            setting.label,
+            setting.description,
+            container,
+            setting.actions || {}
+          );
+        case "slider":
+          return this.createSlider(module, key, setting, container);
+        case "complex":
+          // Assuming setting.action is a function that correctly appends custom complex UI to the container
+          if (typeof setting.action === "function") {
+            return setting.action(container);
+          }
+          /*
+          console.warn(
+            `No action defined for complex setting ${key} in module ${module.name}.`
+          ); 
+          */
+          return null; // Return null or appropriate fallback
+        default:
+          /*
+           console.warn(
+            `Unsupported setting type '${setting.type}' for key '${key}' in module '${module.name}'.`
+          ); 
+          */
+          return null; // Return null or appropriate fallback for unsupported types
+      }
     },
 
     /**
