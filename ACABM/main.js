@@ -1093,6 +1093,7 @@
       }
     },
     init() {
+      this.removeSellAllButton(); // Ensure the button is removed when the feature is initialized for reset hard refreshes
       var loadedSettings = SettingsManager.loadModuleSettings(this.id);
       if (loadedSettings) {
         this.settings = { ...this.settings, ...loadedSettings };
@@ -1603,6 +1604,7 @@
      * Loads settings from SettingsManager and starts the module if enabled.
      */
     init() {
+      this.closePopupWindow()
       var loadedSettings = SettingsManager.loadModuleSettings(this.id);
       if (loadedSettings) {
         this.settings = { ...this.settings, ...loadedSettings };
