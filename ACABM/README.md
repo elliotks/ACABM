@@ -47,7 +47,12 @@ javascript:(function() {
 
   It does not just "buy" buildings/upgrades you can afford, but attempts to buy the best buildings/upgrades. If you do not see the script buying. It is waiting for the best option to become available.
 
-- **Auto-Buy Protect** - Calculates Lucky and Frenzy requirements so that Auto-Buy doesn't go below them. If Auto-Buy seems "stuck" try disabling this option.
+- **Auto-Buy Protect** - (moved to Auto-Buy) Calculates Lucky and Frenzy requirements so that Auto-Buy doesn't go below them. If Auto-Buy seems "stuck" try disabling this option.
+- **Auto Fortune** - Auto click on News ticker fortunes.
+- **Auto Wrinklers** - Pop the single fattest normal (excluding Shiny) wrinkler if you are at your max. This can now be customized further in the options menu to choose your Max Wrinkler count and include Shiny if needed.
+- **AutoPet Krumblor** - Pets Krumblor when you reach lvl 4 to unlock Dragon drops. Krumblor's Menu must be open. Turns off if you have all 4 drops.
+- **Ascend Luck** - Used for unlocking Lucky digit, Lucky number, and Lucky payout. Automatically Ascends you when conditions are met and toggles this feature to off. Turn back on manually if you have more to unlock. Does not buy the Heavenly upgrade for you.
+- **Sell All** - Adds a "Sell All" Button to the store that sells all buildings, with option to Ascend after selling.
 
 ## How to add a new module:
 
