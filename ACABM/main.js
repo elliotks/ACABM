@@ -37,6 +37,8 @@
         "Turn the option back on once you fulfill these requirements.",
       krumblorMCompleted: "You have unlocked all Krumblor upgrades:",
       krumblorMRUnlocks: "Petting Krumblor for the remaining unlock(s):",
+      autoBuyMCMConflict:
+        "Auto-Buy is not allowed when CookieMonster mod is enabled.",
       sellAllBuildingsButton: "Sell All",
       autobuyMSellMode:
         "You are currently in Sell mode, switch back to: Buy Mode in the Store Menu.",
@@ -90,6 +92,208 @@
     });
 
     return translation;
+  }
+
+  /**
+   * Calculator class for calculating the best item to buy based on the current game state.
+   *
+   * @class
+   */
+  class Calculator {
+    /**
+     * Creates an instance of Calculator.
+     * @memberof Calculator
+     */
+    constructor() {
+      /**
+       * Schema for the Calculator class.
+       * @type {Array}
+       * @property {Function} objects - Returns an array of objects to be used in the schema.
+       * @property {Object} accessors - Accessors for the objects in the schema.
+       * @property {Function} accessors.add - Adds an object to the schema.
+       * @property {Function} accessors.sub - Removes an object from the schema.
+       * @property {Function} accessors.price - Returns the price of an object.
+       * @property {Function} accessors.lasting - Returns the lasting value of an object.
+       */
+      this.schema = [
+        {
+          objects: function () {
+            return Game.UpgradesInStore.filter(function (e) {
+              return (
+                [].indexOf(e.id) < 0 &&
+                e.pool != "prestige" &&
+                e.pool != "toggle" &&
+                !Game.vault.includes(e.id) &&
+                !autoBuy.settings.upgradeVault.includes(e.id) &&
+                !autoBuy.settings.techVault.includes(e.id)
+              );
+            });
+          },
+          accessors: {
+            add: function (e) {
+              e.bought = 1;
+            },
+            sub: function (e) {
+              e.bought = 0;
+            },
+            price: function (e) {
+              return e.basePrice;
+            },
+            lasting: function (e) {
+              return e.lasting;
+            },
+          },
+        },
+        {
+          objects: function () {
+            return Game.ObjectsById.filter(function (e) {
+              return (
+                [].indexOf(e.id) < 0 &&
+                !autoBuy.settings.buildingVault.includes(e.id)
+              );
+            });
+          },
+          accessors: {
+            add: function (e) {
+              e.amount++;
+            },
+            sub: function (e) {
+              e.amount--;
+            },
+            price: function (e) {
+              return e.price;
+            },
+            lasting: function (e) {
+              return e.lasting;
+            },
+          },
+        },
+      ];
+    }
+
+    /**
+     * Calculates the cps_acc value.
+     * @memberof Calculator
+     * @param {number} base_cps - The base cps value.
+     * @param {number} new_cps - The new cps value.
+     * @param {number} price - The price of the object.
+     * @returns {number} The cps_acc value.
+     */
+    cps_acc(base_cps, new_cps, price) {
+      return (base_cps * base_cps * (new_cps - base_cps)) / (price * price);
+    }
+
+    /**
+     * Calculates the ecps value.
+     * @memberof Calculator
+     * @returns {number} The ecps value.
+     */
+    ecps() {
+      return Game.cookiesPs * (1 - Game.cpsSucked);
+    }
+
+    /**
+     * Calculates the bonus value.
+     * @memberof Calculator
+     * @param {Object} item - The item to calculate the bonus for.
+     * @param {Function} list_generator - The list generator function.
+     * @param {number} mouse_rate - The mouse rate value.
+     * @returns {Array} The bonus value.
+     */
+    calc_bonus(item, list_generator, mouse_rate) {
+      // Temporarily override Game.Win
+      var funcGW = Game.Win;
+      Game.Win = function () {}; // Temporarily replace with no-op function
+
+      // Temporarily override Game.CalculateGains
+      // Clone the necessary game state
+      var originalState = {
+        CalculateGains: Game.CalculateGains,
+        cookiesPsRawHighest: Game.cookiesPsRawHighest,
+        // Clone other necessary variables or states
+      };
+
+      // Temporarily override Game.CalculateGains with a version that does not modify cookiesPsRawHighest
+      Game.CalculateGains = function () {
+        var originalRawHighest = Game.cookiesPsRawHighest;
+        originalState.CalculateGains.call(Game); // Call the original CalculateGains
+        Game.cookiesPsRawHighest = originalRawHighest; // Restore cookiesPsRawHighest after the call
+      };
+
+      var res = list_generator().map(
+        function (e) {
+          var lasting = this.item.lasting(e);
+          var price = Math.round(this.item.price(e));
+          // -- Garden Upgrade Calc -- currently the only upgrades using lasting.
+          if (lasting) {
+            price = Math.round(price * Game.cookiesPs * 60);
+          }
+          // -- Dragon Upgrade Calc -- currently the only upgrades with price 999.
+          if (price == 999) {
+            price =
+              Game.unbuffedCps *
+              60 *
+              30 *
+              (Game.dragonLevel < Game.dragonLevels.length - 1 ? 1 : 0.1);
+          }
+
+          this.item.add(e);
+          Game.CalculateGains();
+          var cps = this.calc.ecps() + Game.computedMouseCps * this.rate;
+          this.item.sub(e);
+          Game.CalculateGains();
+          return {
+            obj: e,
+            price: price,
+            acc: this.calc.cps_acc(this.base_cps, cps, price),
+          };
+        }.bind({
+          item: item,
+          calc: this,
+          rate: mouse_rate,
+          base_cps:
+            (Game.cookiesPs ? this.ecps() : 0.001) +
+            Game.computedMouseCps * mouse_rate,
+        })
+      );
+
+      Game.Win = funcGW; // Restore Game.Win
+      Game.CalculateGains = originalState.CalculateGains; // Restore Game.CalculateGains
+      Game.cookiesPsRawHighest = originalState.cookiesPsRawHighest; // Restore cookiesPsRawHighest
+
+      return res;
+    }
+
+    /**
+     * Finds the best value.
+     * @memberof Calculator
+     * @param {number} mouse_rate - The mouse rate value.
+     * @returns {Object} The best value.
+     */
+
+    find_best(mouse_rate) {
+      var pool = [];
+      var zero_buy = Math.sqrt(Game.cookiesEarned * Game.cookiesPs);
+
+      for (var i = 0; i < this.schema.length; i++)
+        pool = pool.concat(
+          this.calc_bonus(
+            this.schema[i].accessors,
+            this.schema[i].objects,
+            mouse_rate || 0
+          )
+        );
+
+      return pool.reduce(function (m, v) {
+        return m.acc == 0 && m.price < zero_buy
+          ? m
+          : v.acc == 0 && v.price < zero_buy
+          ? v
+          : m.acc < v.acc
+          ? v
+          : m;
+      }, pool[0]);
+    }
   }
 
   /**
@@ -538,7 +742,8 @@
         min: 1,
         max: 9,
         step: 1,
-        description: "The maximum number of wrinklers to pop. The max value is your max wrinklers - 1.",
+        description:
+          "The maximum number of wrinklers to pop. The max value is your max wrinklers - 1.",
       },
     },
     nextProc: 0,
@@ -735,14 +940,18 @@
           modTranslate("krumblorMCompleted") +
             " Dragon scale, Dragon claw, Dragon fang, Dragon teddy bear."
         );
-      } else if (isKrumblorMenuOpen && dragonLevel >= 4 && hasPetDragon) {
-        unlockMsg.push(modTranslate("krumblorMRUnlocks"));
-        if (!hasUnlockedScale) unlockMsg.push("Dragon scale");
-        if (!hasUnlockedClaw) unlockMsg.push("Dragon claw");
-        if (!hasUnlockedFang) unlockMsg.push("Dragon fang");
-        if (!hasUnlockedTeddy) unlockMsg.push("Dragon teddy bear");
+      } else if (dragonLevel >= 4 && hasPetDragon) {
+        if (!isKrumblorMenuOpen && Game.specialTab === "") {
+          Game.specialTab = "dragon"; // Open the dragon menu if it's not already open and the user doesn't have another special menu open
+        } else if (isKrumblorMenuOpen) {
+          unlockMsg.push(modTranslate("krumblorMRUnlocks"));
+          if (!hasUnlockedScale) unlockMsg.push("Dragon scale");
+          if (!hasUnlockedClaw) unlockMsg.push("Dragon claw");
+          if (!hasUnlockedFang) unlockMsg.push("Dragon fang");
+          if (!hasUnlockedTeddy) unlockMsg.push("Dragon teddy bear");
 
-        Game.ClickSpecialPic();
+          Game.ClickSpecialPic();
+        }
       } else {
         if (!hasPetDragon) {
           offReasons.push(
@@ -1042,7 +1251,8 @@
       enabled: {
         type: "toggle",
         label: "Sell All Buildings",
-        description: "Enables or disables the Sell All Buildings feature.",
+        description:
+          'Adds a "Sell All" button to the store that sells all buildings, with option to Ascend after selling.',
         actions: {
           start: () => sellAll.start(),
           stop: () => sellAll.stop(),
@@ -1181,7 +1391,6 @@
    * @property {string} settingsUI.protect.type - Type of UI element (toggle).
    * @property {string} settingsUI.protect.label - Label for the toggle.
    * @property {string} settingsUI.protect.description - Description for the toggle.
-   * @property {Calculator} Calculator - Calculator class for calculating the best item to buy based on the current game state.
    */
   const autoBuy = {
     id: "autoBuy", // Unique identifier
@@ -1266,213 +1475,11 @@
       },
       // Include UI elements for other settings as needed
     },
-
-    /**
-     * Calculator class for calculating the best item to buy based on the current game state.
-     * @memberof autoBuy
-     * @class
-     */
-    Calculator: class {
-      /**
-       * Creates an instance of Calculator.
-       * @memberof Calculator
-       */
-      constructor() {
-        /**
-         * Schema for the Calculator class.
-         * @type {Array}
-         * @property {Function} objects - Returns an array of objects to be used in the schema.
-         * @property {Object} accessors - Accessors for the objects in the schema.
-         * @property {Function} accessors.add - Adds an object to the schema.
-         * @property {Function} accessors.sub - Removes an object from the schema.
-         * @property {Function} accessors.price - Returns the price of an object.
-         * @property {Function} accessors.lasting - Returns the lasting value of an object.
-         */
-        this.schema = [
-          {
-            objects: function () {
-              return Game.UpgradesInStore.filter(function (e) {
-                return (
-                  [].indexOf(e.id) < 0 &&
-                  e.pool != "prestige" &&
-                  e.pool != "toggle" &&
-                  !Game.vault.includes(e.id) &&
-                  !autoBuy.settings.upgradeVault.includes(e.id) &&
-                  !autoBuy.settings.techVault.includes(e.id)
-                );
-              });
-            },
-            accessors: {
-              add: function (e) {
-                e.bought = 1;
-              },
-              sub: function (e) {
-                e.bought = 0;
-              },
-              price: function (e) {
-                return e.basePrice;
-              },
-              lasting: function (e) {
-                return e.lasting;
-              },
-            },
-          },
-          {
-            objects: function () {
-              return Game.ObjectsById.filter(function (e) {
-                return (
-                  [].indexOf(e.id) < 0 &&
-                  !autoBuy.settings.buildingVault.includes(e.id)
-                );
-              });
-            },
-            accessors: {
-              add: function (e) {
-                e.amount++;
-              },
-              sub: function (e) {
-                e.amount--;
-              },
-              price: function (e) {
-                return e.price;
-              },
-              lasting: function (e) {
-                return e.lasting;
-              },
-            },
-          },
-        ];
-      }
-
-      /**
-       * Calculates the CPS acceleration based on the base CPS, new CPS, and price.
-       *
-       * @param {number} base_cps - The base CPS (Cookies Per Second).
-       * @param {number} new_cps - The new CPS.
-       * @param {number} price - The price.
-       * @returns {number} The CPS acceleration.
-       */
-      cps_acc(base_cps, new_cps, price) {
-        return (base_cps * base_cps * (new_cps - base_cps)) / (price * price);
-      }
-
-      /**
-       * Calculates the effective cookies per second (ecps).
-       * The ecps is calculated by multiplying the current cookies per second (cps) by the fraction of cps that is not being sucked by wrinklers.
-       * @memberof Calculator
-       * @returns {number} The effective cookies per second.
-       */
-      ecps() {
-        return Game.cookiesPs * (1 - Game.cpsSucked);
-      }
-
-      /**
-       * Calculates the bonus for an item based on the given parameters.
-       *
-       * @param {Object} item - The item for which to calculate the bonus.
-       * @param {Function} list_generator - A function that generates a list of items.
-       * @param {number} mouse_rate - The mouse rate to be used in the calculation.
-       * @returns {Array} An array of objects containing the calculated bonus for each item.
-       */
-      calc_bonus(item, list_generator, mouse_rate) {
-        // Temporarily override Game.Win
-        var funcGW = Game.Win;
-        Game.Win = function () {}; // Temporarily replace with no-op function
-
-        // Temporarily override Game.CalculateGains
-        // Clone the necessary game state
-        var originalState = {
-          CalculateGains: Game.CalculateGains,
-          cookiesPsRawHighest: Game.cookiesPsRawHighest,
-          // Clone other necessary variables or states
-        };
-
-        // Temporarily override Game.CalculateGains with a version that does not modify cookiesPsRawHighest
-        Game.CalculateGains = function () {
-          var originalRawHighest = Game.cookiesPsRawHighest;
-          originalState.CalculateGains.call(Game); // Call the original CalculateGains
-          Game.cookiesPsRawHighest = originalRawHighest; // Restore cookiesPsRawHighest after the call
-        };
-
-        var res = list_generator().map(
-          function (e) {
-            var lasting = this.item.lasting(e);
-            var price = Math.round(this.item.price(e));
-            // -- Garden Upgrade Calc -- currently the only upgrades using lasting.
-            if (lasting) {
-              price = Math.round(price * Game.cookiesPs * 60);
-            }
-            // -- Dragon Upgrade Calc -- currently the only upgrades with price 999.
-            if (price == 999) {
-              price =
-                Game.unbuffedCps *
-                60 *
-                30 *
-                (Game.dragonLevel < Game.dragonLevels.length - 1 ? 1 : 0.1);
-            }
-
-            this.item.add(e);
-            Game.CalculateGains();
-            var cps = this.calc.ecps() + Game.computedMouseCps * this.rate;
-            this.item.sub(e);
-            Game.CalculateGains();
-            return {
-              obj: e,
-              price: price,
-              acc: this.calc.cps_acc(this.base_cps, cps, price),
-            };
-          }.bind({
-            item: item,
-            calc: this,
-            rate: mouse_rate,
-            base_cps:
-              (Game.cookiesPs ? this.ecps() : 0.001) +
-              Game.computedMouseCps * mouse_rate,
-          })
-        );
-
-        Game.Win = funcGW; // Restore Game.Win
-        Game.CalculateGains = originalState.CalculateGains; // Restore Game.CalculateGains
-        Game.cookiesPsRawHighest = originalState.cookiesPsRawHighest; // Restore cookiesPsRawHighest
-
-        return res;
-      }
-
-      /**
-       * Finds the best object based on the given mouse rate.
-       * @memberof Calculator
-       * @param {number} mouse_rate - The mouse rate to calculate the bonus.
-       * @returns {Object} - The best object based on the mouse rate.
-       */
-      find_best(mouse_rate) {
-        var pool = [];
-        var zero_buy = Math.sqrt(Game.cookiesEarned * Game.cookiesPs);
-
-        for (var i = 0; i < this.schema.length; i++)
-          pool = pool.concat(
-            this.calc_bonus(
-              this.schema[i].accessors,
-              this.schema[i].objects,
-              mouse_rate || 0
-            )
-          );
-
-        return pool.reduce(function (m, v) {
-          return m.acc == 0 && m.price < zero_buy
-            ? m
-            : v.acc == 0 && v.price < zero_buy
-            ? v
-            : m.acc < v.acc
-            ? v
-            : m;
-        }, pool[0]);
-      }
-    },
-    calculator: null, // Placeholder for an instance of the Calculator class
+    calculator: new Calculator(), // Calculator class for calculating the best item to buy based on the current game state
     target: { name: undefined, price: -1 }, // Target object for the autoBuy module
     total: -1, // Total value for the autoBuy module
     nextProc: 0, // Next process for the autoBuy module
-    statusMessage: this.name + " is initializing...", // Status message for the autoBuy module
+    statusMessage: "", // Status message for the autoBuy module
     /**
      * Performs the logic for determining what to buy next based on the current settings and game state.
      * If the auto-clicker is enabled, it calculates the best item to buy and waits for the appropriate time to make the purchase.
@@ -1489,10 +1496,20 @@
         return;
       }
 
-      // Logic to use the Calculator
-      if (!this.calculator) {
-        this.calculator = new this.Calculator(); // Instantiate the Calculator when needed
+      /*
+      if (Game.mods["CookieMonster"]) {
+        let message = `${modTranslate("autoBuyMCMConflict")}`;
+        UIManager.updateModuleStatusMessage(this.id, message);
+        if (this.settings.popupWindowMessage) {
+          this.settings.popupWindowMessage = false;
+          SettingsManager.updateModuleSettings(this.id, {
+            popupWindowMessage: false,
+          });
+        }
+        this.stop();
+        return;
       }
+      */
 
       const now = Date.now();
       if (now < this.nextProc) {
