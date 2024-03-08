@@ -38,8 +38,8 @@
       krumblorMCompleted: "You have unlocked all Krumblor upgrades:",
       krumblorMRUnlocks: "Petting Krumblor for the remaining unlock(s):",
       sellAllBuildingsButton: "Sell All",
-      autobuyMSellMode: "You are currently in Sell mode, switch back to:",
-      autobuyMSellModeLink: "Buy Mode",
+      autobuyMSellMode:
+        "You are currently in Sell mode, switch back to: Buy Mode in the Store Menu.",
     },
     FR: {
       // French
@@ -151,6 +151,7 @@
         max: 3000,
         step: 50,
         unit: "ms", // Specifying the unit for the delay setting
+        description: "The delay between each click in milliseconds.",
       },
     },
     nextProc: 0,
@@ -159,25 +160,30 @@
      * If the autoClicker is enabled, it clicks the cookie based on the specified delay.
      */
     logic() {
+      // Exit early if disabled, during ascend or ascend timer is active
       if (!this.settings.enabled || Game.OnAscend || Game.AscendTimer > 0) {
         return;
       }
 
       const now = Date.now();
-      if (now >= this.nextProc) {
-        // Check if the auto-clicker should only click during frenzy/click frenzy
-        if (this.settings.frenzy) {
-          // Click the cookie only if the game has the "Frenzy" or "Click frenzy" buff
-          if (Game.hasBuff("Frenzy") || Game.hasBuff("Click frenzy")) {
-            Game.ClickCookie(0);
-          }
-        } else {
-          // Click the cookie
+      if (now < this.nextProc) {
+        // Not yet time for the next process
+        return;
+      }
+
+      // Check if the auto-clicker should only click during frenzy/click frenzy
+      if (this.settings.frenzy) {
+        // Click the cookie only if the game has the "Frenzy" or "Click frenzy" buff
+        if (Game.hasBuff("Frenzy") || Game.hasBuff("Click frenzy")) {
           Game.ClickCookie(0);
         }
-        // Update the next process time
-        this.nextProc = now + this.settings.delay;
+      } else {
+        // Click the cookie
+        Game.ClickCookie(0);
       }
+
+      // Update next processing time
+      this.nextProc = now + this.settings.delay;
     },
     /**
      * Starts the module.
@@ -259,7 +265,7 @@
     settings: {
       collapsed: false,
       enabled: false, // Overall module toggle
-      delay: 50, // Delay between checks
+      delay: 100, // Delay between checks
       golden: true,
       wrath: true,
       skipForcedWrath: false,
@@ -308,35 +314,39 @@
      * The shimmers are popped based on the settings provided.
      */
     logic() {
+      // Exit early if disabled, during ascend or ascend timer is active
       if (!this.settings.enabled || Game.OnAscend || Game.AscendTimer > 0) {
         return;
       }
 
       const now = Date.now();
-      if (now >= this.nextProc) {
-        Game.shimmers.forEach((shimmer) => {
-          if (
-            shimmer.type === "golden" &&
-            this.settings.golden &&
-            !shimmer.wrath
-          ) {
-            shimmer.pop();
-          } else if (
-            shimmer.type === "golden" &&
-            this.settings.wrath &&
-            shimmer.wrath
-          ) {
-            if (shimmer.force === "wrath" && this.settings.skipForcedWrath) {
-              return;
-            } else {
-              shimmer.pop();
-            }
-          } else if (shimmer.type === "reindeer" && this.settings.reindeer) {
-            shimmer.pop();
-          }
-        });
-        this.nextProc = now + this.settings.delay;
+      if (now < this.nextProc) {
+        // Not yet time for the next process
+        return;
       }
+
+      // Process each shimmer
+      Game.shimmers.forEach((shimmer) => {
+        const isGolden = shimmer.type === "golden";
+        const isReindeer = shimmer.type === "reindeer";
+        const shouldPopGolden =
+          isGolden &&
+          ((this.settings.golden && !shimmer.wrath) ||
+            (this.settings.wrath && shimmer.wrath));
+        const shouldSkipForcedWrath =
+          isGolden &&
+          shimmer.wrath &&
+          shimmer.force === "wrath" &&
+          this.settings.skipForcedWrath;
+        const shouldPopReindeer = isReindeer && this.settings.reindeer;
+
+        if ((shouldPopGolden && !shouldSkipForcedWrath) || shouldPopReindeer) {
+          shimmer.pop();
+        }
+      });
+
+      // Update next processing time
+      this.nextProc = now + this.settings.delay;
     },
     /**
      * Starts the module.
@@ -416,33 +426,33 @@
      * Automatically clicks the fortune ticker if the "Fortune cookies" upgrade is unlocked.
      */
     logic() {
+      // Exit early if disabled, during ascend or ascend timer is active
       if (!this.settings.enabled || Game.OnAscend || Game.AscendTimer > 0) {
         return;
       }
-      // Check if next logic process time has been reached
-      const now = Date.now();
-      if (now >= this.nextProc) {
-        // If the player is ascending or the ascend timer is greater than 0, skip the logic.
-        if (Game.OnAscend || Game.AscendTimer > 0) {
-          return;
-        }
 
-        const hasUnlockedFortune = Game.HasUnlocked("Fortune cookies");
-        if (hasUnlockedFortune) {
-          if (Game.TickerEffect && Game.TickerEffect.type === "fortune") {
-            Game.tickerL.click();
-          }
-        } else {
-          // Implementing a placeholder for message handling regarding the "Fortune cookies" unlock requirement
-          UIManager.updateModuleStatusMessage(
-            this.id,
-            'You need to unlock "Fortune cookies" to use the Fortune Clicker feature.'
-          );
-          this.stop();
-        }
-        // Update the next process time
-        this.nextProc = now + this.settings.delay;
+      const now = Date.now();
+      if (now < this.nextProc) {
+        // Not yet time for the next process
+        return;
       }
+
+      const hasUnlockedFortune = Game.HasUnlocked("Fortune cookies");
+      if (hasUnlockedFortune) {
+        if (Game.TickerEffect && Game.TickerEffect.type === "fortune") {
+          Game.tickerL.click();
+        }
+      } else {
+        // Implementing a placeholder for message handling regarding the "Fortune cookies" unlock requirement
+        UIManager.updateModuleStatusMessage(
+          this.id,
+          'You need to unlock "Fortune cookies" to use the Fortune Clicker feature.'
+        );
+        this.stop();
+      }
+
+      // Update the next process time
+      this.nextProc = now + this.settings.delay;
     },
     /**
      * Starts the module.
@@ -528,6 +538,7 @@
         min: 1,
         max: 9,
         step: 1,
+        description: "The maximum number of wrinklers to pop. The max value is your max wrinklers - 1.",
       },
     },
     nextProc: 0,
@@ -535,59 +546,75 @@
      * Performs the logic for popping wrinklers based on the specified settings.
      */
     logic() {
+      // Exit early if disabled, during ascend or ascend timer is active
       if (!this.settings.enabled || Game.OnAscend || Game.AscendTimer > 0) {
         return;
       }
 
       const now = Date.now();
-      if (now >= this.nextProc) {
-        if (Game.elderWrath > 0) {
-          let wrinklersNormal = Game.wrinklers.filter(
-            (w) => w.type == 0 && w.sucked > 0
-          );
-          let wrinklersShiny = Game.wrinklers.filter(
-            (w) => w.type !== 0 && w.sucked > 0
-          );
-
-          if (
-            wrinklersNormal.length + wrinklersShiny.length >
-              this.settings.maxWrinklers ||
-            wrinklersNormal.length + wrinklersShiny.length >=
-              Game.getWrinklersMax()
-          ) {
-            // Pop the fattest normal wrinkler
-            if (wrinklersNormal.length > 0) {
-              Game.wrinklers[
-                wrinklersNormal.reduce((max, w) =>
-                  w.sucked > max.sucked ? w : max
-                ).id
-              ].hp = 0;
-              UIManager.updateModuleStatusMessage(
-                this.id,
-                "Popping most valuable normal Wrinkler."
-              );
-            }
-            // Pop the fattest shiny wrinkler if enabled and no normal wrinklers are available
-            if (
-              this.settings.popShiny &&
-              wrinklersShiny.length > 0 &&
-              wrinklersNormal.length == 0
-            ) {
-              Game.wrinklers[
-                wrinklersShiny.reduce((max, w) =>
-                  w.sucked > max.sucked ? w : max
-                ).id
-              ].hp = 0;
-              UIManager.updateModuleStatusMessage(
-                this.id,
-                "Popping most valuable shiny Wrinkler."
-              );
-            }
+      if (now < this.nextProc) {
+        // Not yet time for the next process
+        return;
+      }
+      if (Game.elderWrath > 0) {
+        let wrinklersMax = Game.getWrinklersMax() - 1;
+        if (this.settingsUI.maxWrinklers.max != wrinklersMax) {
+          if (this.settings.maxWrinklers === this.settingsUI.maxWrinklers.max) {
+            this.settings.maxWrinklers = wrinklersMax;
+            SettingsManager.updateModuleSettings(this.id, {
+              maxWrinklers: wrinklersMax,
+            });
+            this.settingsUI.maxWrinklers.max = wrinklersMax;
+          } else {
+            this.settingsUI.maxWrinklers.max = wrinklersMax;
           }
-
-          // Update the next process time
-          this.nextProc = now + this.settings.delay;
         }
+
+        let wrinklersNormal = Game.wrinklers.filter(
+          (w) => w.type == 0 && w.sucked > 0
+        );
+        let wrinklersShiny = Game.wrinklers.filter(
+          (w) => w.type !== 0 && w.sucked > 0
+        );
+
+        if (
+          wrinklersNormal.length + wrinklersShiny.length >
+            this.settings.maxWrinklers ||
+          wrinklersNormal.length + wrinklersShiny.length >=
+            Game.getWrinklersMax()
+        ) {
+          // Pop the fattest normal wrinkler
+          if (wrinklersNormal.length > 0) {
+            Game.wrinklers[
+              wrinklersNormal.reduce((max, w) =>
+                w.sucked > max.sucked ? w : max
+              ).id
+            ].hp = 0;
+            UIManager.updateModuleStatusMessage(
+              this.id,
+              "Popping most valuable normal Wrinkler."
+            );
+          }
+          // Pop the fattest shiny wrinkler if enabled and no normal wrinklers are available
+          if (
+            this.settings.popShiny &&
+            wrinklersShiny.length > 0 &&
+            wrinklersNormal.length == 0
+          ) {
+            Game.wrinklers[
+              wrinklersShiny.reduce((max, w) =>
+                w.sucked > max.sucked ? w : max
+              ).id
+            ].hp = 0;
+            UIManager.updateModuleStatusMessage(
+              this.id,
+              "Popping most valuable shiny Wrinkler."
+            );
+          }
+        }
+
+        // Update the next process time
+        this.nextProc = now + this.settings.delay;
       }
     },
     /**
@@ -676,67 +703,69 @@
     },
     nextProc: 0,
     logic() {
+      // Exit early if disabled, during ascend or ascend timer is active
       if (!this.settings.enabled || Game.OnAscend || Game.AscendTimer > 0) {
         return;
       }
 
       const now = Date.now();
-      if (now >= this.nextProc) {
-        const unlockMsg = [];
-        const offReasons = [];
+      if (now < this.nextProc) {
+        // Not yet time for the next process
+        return;
+      }
+      const unlockMsg = [];
+      const offReasons = [];
 
-        const hasUnlockedScale = Game.HasUnlocked("Dragon scale");
-        const hasUnlockedClaw = Game.HasUnlocked("Dragon claw");
-        const hasUnlockedFang = Game.HasUnlocked("Dragon fang");
-        const hasUnlockedTeddy = Game.HasUnlocked("Dragon teddy bear");
-        const hasPetDragon = Game.HasUnlocked("Pet the dragon");
-        const dragonLevel = Game.dragonLevel;
-        const isKrumblorMenuOpen = Game.specialTab === "dragon";
+      const hasUnlockedScale = Game.HasUnlocked("Dragon scale");
+      const hasUnlockedClaw = Game.HasUnlocked("Dragon claw");
+      const hasUnlockedFang = Game.HasUnlocked("Dragon fang");
+      const hasUnlockedTeddy = Game.HasUnlocked("Dragon teddy bear");
+      const hasPetDragon = Game.HasUnlocked("Pet the dragon");
+      const dragonLevel = Game.dragonLevel;
+      const isKrumblorMenuOpen = Game.specialTab === "dragon";
 
-        if (
-          hasUnlockedScale &&
-          hasUnlockedClaw &&
-          hasUnlockedFang &&
-          hasUnlockedTeddy
-        ) {
-          this.stop();
-          unlockMsg.push(
-            modTranslate("krumblorMCompleted") +
-              " Dragon scale, Dragon claw, Dragon fang, Dragon teddy bear."
+      if (
+        hasUnlockedScale &&
+        hasUnlockedClaw &&
+        hasUnlockedFang &&
+        hasUnlockedTeddy
+      ) {
+        this.stop();
+        unlockMsg.push(
+          modTranslate("krumblorMCompleted") +
+            " Dragon scale, Dragon claw, Dragon fang, Dragon teddy bear."
+        );
+      } else if (isKrumblorMenuOpen && dragonLevel >= 4 && hasPetDragon) {
+        unlockMsg.push(modTranslate("krumblorMRUnlocks"));
+        if (!hasUnlockedScale) unlockMsg.push("Dragon scale");
+        if (!hasUnlockedClaw) unlockMsg.push("Dragon claw");
+        if (!hasUnlockedFang) unlockMsg.push("Dragon fang");
+        if (!hasUnlockedTeddy) unlockMsg.push("Dragon teddy bear");
+
+        Game.ClickSpecialPic();
+      } else {
+        if (!hasPetDragon) {
+          offReasons.push(
+            modTranslate("krumblorMReqHU") + ' "Pet the dragon" '
           );
-        } else if (isKrumblorMenuOpen && dragonLevel >= 4 && hasPetDragon) {
-          unlockMsg.push(modTranslate("krumblorMRUnlocks"));
-          if (!hasUnlockedScale) unlockMsg.push("Dragon scale");
-          if (!hasUnlockedClaw) unlockMsg.push("Dragon claw");
-          if (!hasUnlockedFang) unlockMsg.push("Dragon fang");
-          if (!hasUnlockedTeddy) unlockMsg.push("Dragon teddy bear");
-
-          Game.ClickSpecialPic();
         } else {
-          if (!hasPetDragon) {
-            offReasons.push(
-              modTranslate("krumblorMReqHU") + ' "Pet the dragon" '
-            );
-          } else {
-            if (!isKrumblorMenuOpen)
-              offReasons.push(modTranslate("krumblorMReqMenu"));
-            if (dragonLevel < 4)
-              offReasons.push(modTranslate("krumblorMReqDL"));
-          }
-
-          unlockMsg.push(
-            modTranslate("krumblorMReq"),
-            ...offReasons,
-            modTranslate("krumblorMReqEnd")
-          );
-          this.stop();
+          if (!isKrumblorMenuOpen)
+            offReasons.push(modTranslate("krumblorMReqMenu"));
+          if (dragonLevel < 4) offReasons.push(modTranslate("krumblorMReqDL"));
         }
 
-        UIManager.updateModuleStatusMessage(this.id, unlockMsg.join("<br>"));
-
-        // Update the next process time
-        this.nextProc = now + this.settings.delay;
+        unlockMsg.push(
+          modTranslate("krumblorMReq"),
+          ...offReasons,
+          modTranslate("krumblorMReqEnd")
+        );
+        this.stop();
       }
+
+      UIManager.updateModuleStatusMessage(this.id, unlockMsg.join("<br>"));
+
+      // Update the next process time
+      this.nextProc = now + this.settings.delay;
     },
     /**
      * Initializes the module.
@@ -1029,24 +1058,25 @@
     nextProc: 0,
     sellAllButtonCreated: false, // Track if the button has been created to minimize DOM access
     logic() {
-      if (Game.OnAscend || Game.AscendTimer > 0 || !this.settings.enabled) {
+      // Exit early if disabled, during ascend or ascend timer is active
+      if (!this.settings.enabled || Game.OnAscend || Game.AscendTimer > 0) {
         return;
       }
 
       const now = Date.now();
-      if (now >= this.nextProc) {
-        // Only proceed to create or remove the button based on its current state to minimize DOM operations
-        const buttonExists = !!document.getElementById(
-          "sellAllBuildingsButton"
-        );
-        if (this.settings.enabled && !buttonExists) {
-          this.start();
-        } else if (!this.settings.enabled && buttonExists) {
-          this.stop();
-        }
-
-        this.nextProc = now + this.settings.delay;
+      if (now < this.nextProc) {
+        // Not yet time for the next process
+        return;
       }
+      // Only proceed to create or remove the button based on its current state to minimize DOM operations
+      const buttonExists = !!document.getElementById("sellAllBuildingsButton");
+      if (this.settings.enabled && !buttonExists) {
+        this.start();
+      } else if (!this.settings.enabled && buttonExists) {
+        this.stop();
+      }
+      // Update the next process time
+      this.nextProc = now + this.settings.delay;
     },
     createSellAllButton() {
       let storeBulkMax = document.getElementById("storeBulkMax");
@@ -1454,6 +1484,7 @@
      * @returns {void}
      */
     logic() {
+      // Exit early if disabled, during ascend or ascend timer is active
       if (!this.settings.enabled || Game.OnAscend || Game.AscendTimer > 0) {
         return;
       }
@@ -1464,120 +1495,117 @@
       }
 
       const now = Date.now();
-      if (now >= this.nextProc) {
-        // Check if the user is in sell mode
-        if (Game.buyMode === -1) {
-          let message = `${modTranslate(
-            "autobuyMSellMode"
-          )} <b><a href="#" onclick=Game.storeBulkButton(0);>${modTranslate(
-            "autobuyMSellModeLink"
-          )}</a></b>`;
-          UIManager.updateModuleStatusMessage(this.id, message);
-          return; // Early exit if the user is in sell mode to prevent buying
-        }
+      if (now < this.nextProc) {
+        // Not yet time for the next process
+        return;
+      }
+      // Check if the user is in sell mode
+      if (Game.buyMode === -1) {
+        let message = `${modTranslate("autobuyMSellMode")}`;
+        UIManager.updateModuleStatusMessage(this.id, message);
+        return; // Early exit if the user is in sell mode to prevent buying
+      }
 
-        // Calculate the best item to buy based on the current game state
-        var info = this.calculator.find_best(
-          autoClicker.settings.enabled ? 1000 / autoClicker.settings.delay : 0
+      // Calculate the best item to buy based on the current game state
+      var info = this.calculator.find_best(
+        autoClicker.settings.enabled ? 1000 / autoClicker.settings.delay : 0
+      );
+
+      // attempts to protect you from going under Lucky and Frenzy requirements.
+      var protect =
+        this.protect && Game.Has("Get lucky") != 0
+          ? (Game.hasBuff("Frenzy") != 0 ? 1 : 7) * Game.cookiesPs * 1200
+          : 0;
+      var wait = (protect + info.price - Game.cookies) / this.calculator.ecps();
+
+      // Update the target object based on the calculated info
+      // Used for guarding against buying before having enough cookies, and if the user bought something manually.
+      this.target.name = info.obj.name ? info.obj.name : undefined;
+      this.target.price = info.price ? info.price : -1;
+
+      if (!isFinite(wait)) {
+        if (Game.BuildingsOwned === 0) {
+          // Filter out buildings that are not in the building vault
+          const availableBuildings = Game.ObjectsById.filter(function (
+            building
+          ) {
+            return !autoBuy.settings.buildingVault.includes(building.id);
+          });
+
+          // Check if buildings are available after filtering
+          if (availableBuildings.length === 0) {
+            return;
+          }
+
+          // Find the cheapest building not in the vault
+          const cheapestBuilding = availableBuildings.reduce(function (
+            prev,
+            curr
+          ) {
+            return prev.price < curr.price ? prev : curr;
+          });
+
+          if (cheapestBuilding.price <= Game.cookies) {
+            // Switch to buy Mode
+            Game.storeBulkButton(0);
+            // Buy the cheapest building
+            UIManager.updateModuleStatusMessage(
+              this.id,
+              "Buying: " + `"${cheapestBuilding.name}"`
+            );
+            cheapestBuilding.buy(1);
+            return;
+          }
+        }
+        UIManager.updateModuleStatusMessage(
+          this.id,
+          "Waiting for enough cookies to buy building: " +
+            `"${info.obj.name}"` +
+            " for " +
+            `"${info.obj.price}"` +
+            " cookies to continue."
+        );
+        return;
+      }
+      if (wait > 0) {
+        UIManager.updateModuleStatusMessage(
+          this.id,
+          "Waiting: " +
+            this.beautifySeconds(wait) +
+            ", to buy: " +
+            `"${info.obj.name}"`
+        );
+      } else if (wait < 0) {
+        UIManager.updateModuleStatusMessage(
+          this.id,
+          "Buying: " + `"${info.obj.name}"`
         );
 
-        // attempts to protect you from going under Lucky and Frenzy requirements.
-        var protect =
-          this.protect && Game.Has("Get lucky") != 0
-            ? (Game.hasBuff("Frenzy") != 0 ? 1 : 7) * Game.cookiesPs * 1200
-            : 0;
-        var wait =
-          (protect + info.price - Game.cookies) / this.calculator.ecps();
+        // Guard against buying before having enough cookies.
+        var t = this.total;
+        this.total =
+          1000 * (Game.hasBuff("Frenzy") != 0 ? 1 : 0) +
+          Game.BuildingsOwned +
+          Game.UpgradesOwned;
 
-        // Update the target object based on the calculated info
-        // Used for guarding against buying before having enough cookies, and if the user bought something manually.
-        this.target.name = info.obj.name ? info.obj.name : undefined;
-        this.target.price = info.price ? info.price : -1;
-
-        if (!isFinite(wait)) {
-          if (Game.BuildingsOwned === 0) {
-            // Filter out buildings that are not in the building vault
-            const availableBuildings = Game.ObjectsById.filter(function (
-              building
-            ) {
-              return !autoBuy.settings.buildingVault.includes(building.id);
-            });
-
-            // Check if buildings are available after filtering
-            if (availableBuildings.length === 0) {
-              return;
-            }
-
-            // Find the cheapest building not in the vault
-            const cheapestBuilding = availableBuildings.reduce(function (
-              prev,
-              curr
-            ) {
-              return prev.price < curr.price ? prev : curr;
-            });
-
-            if (cheapestBuilding.price <= Game.cookies) {
-              // Switch to buy Mode
-              Game.storeBulkButton(0);
-              // Buy the cheapest building
-              UIManager.updateModuleStatusMessage(
-                this.id,
-                "Buying: " + `"${cheapestBuilding.name}"`
-              );
-              cheapestBuilding.buy(1);
-              return;
-            }
-          }
-          UIManager.updateModuleStatusMessage(
-            this.id,
-            "Waiting for enough cookies to buy building: " +
-              `"${info.obj.name}"` +
-              " for " +
-              `"${info.obj.price}"` +
-              " cookies to continue."
-          );
-          return;
-        }
-        if (wait > 0) {
-          UIManager.updateModuleStatusMessage(
-            this.id,
-            "Waiting: " +
-              this.beautifySeconds(wait) +
-              ", to buy: " +
-              `"${info.obj.name}"`
-          );
-        } else if (wait < 0) {
-          UIManager.updateModuleStatusMessage(
-            this.id,
-            "Buying: " + `"${info.obj.name}"`
-          );
-
-          // Guard against buying before having enough cookies.
-          var t = this.total;
-          this.total =
-            1000 * (Game.hasBuff("Frenzy") != 0 ? 1 : 0) +
-            Game.BuildingsOwned +
-            Game.UpgradesOwned;
-
-          if (
-            t != this.total ||
-            this.target.price >= Game.cookies - this.calculator.ecps()
-          ) {
-            return; // Early exit if conditions are met
-          }
-
-          // Execute purchase
-          if (info.obj.name === "One mind") {
-            Game.UpgradesById["69"].buy(1);
-            Game.ClosePrompt();
-          } else {
-            info.obj.buy();
-          }
-          this.total++;
+        if (
+          t != this.total ||
+          this.target.price >= Game.cookies - this.calculator.ecps()
+        ) {
+          return; // Early exit if conditions are met
         }
 
-        this.nextProc = now + this.settings.delay;
+        // Execute purchase
+        if (info.obj.name === "One mind") {
+          Game.UpgradesById["69"].buy(1);
+          Game.ClosePrompt();
+        } else {
+          info.obj.buy();
+        }
+        this.total++;
       }
+      // Update the next process time
+      this.nextProc = now + this.settings.delay;
     },
     /**
      * Starts the module.
@@ -1604,7 +1632,7 @@
      * Loads settings from SettingsManager and starts the module if enabled.
      */
     init() {
-      this.closePopupWindow()
+      this.closePopupWindow();
       var loadedSettings = SettingsManager.loadModuleSettings(this.id);
       if (loadedSettings) {
         this.settings = { ...this.settings, ...loadedSettings };
@@ -1719,32 +1747,34 @@
         moduleTitle.style.fontSize = "1rem";
         moduleTitle.textContent = `${module.name} `;
         subsection.appendChild(moduleTitle);
-      
+
         // Create toggle button within moduleTitle
         const toggleButton = document.createElement("span");
         toggleButton.textContent = "[+]";
         toggleButton.style.cursor = "pointer";
         toggleButton.style.marginLeft = "4px";
         moduleTitle.appendChild(toggleButton);
-      
+
         // Create settings container
         const listing = document.createElement("div");
         listing.className = "listing";
         listing.style.display = "none"; // Initially collapsed
         subsection.appendChild(listing);
-      
+
         // Toggle visibility on click
-        toggleButton.addEventListener('click', function() {
+        toggleButton.addEventListener("click", function () {
           const isVisible = listing.style.display !== "none";
           listing.style.display = isVisible ? "none" : "block";
           toggleButton.textContent = isVisible ? "[+]" : "[-]";
-      
+
           // Update module settings for persistence (assumed structure, adjust as needed)
           module.settings.collapsed = isVisible;
           // Save settings (this will vary based on your mod's implementation)
-          SettingsManager.updateModuleSettings(module.id, { collapsed: isVisible});
+          SettingsManager.updateModuleSettings(module.id, {
+            collapsed: isVisible,
+          });
         });
-      
+
         // Populate listing based on module.settingsUI
         Object.keys(module.settingsUI).forEach((key) => {
           const setting = module.settingsUI[key];
@@ -1753,13 +1783,13 @@
             listing.appendChild(element);
           }
         });
-      
+
         // Restore visibility state from module settings
         if (!module.settings.collapsed) {
           listing.style.display = "block";
           toggleButton.textContent = "[-]";
         }
-      });      
+      });
 
       menu.insertBefore(block, sections.nextSibling.nextSibling.nextSibling);
     },
@@ -1884,6 +1914,8 @@
      * @returns {HTMLElement} The constructed sliderBox element.
      */
     createSlider(module, settingKey, setting, parent) {
+      // Create the wrapper for the slider
+      const wrapper = document.createElement("div");
       // Create the container for the slider and its labels
       const sliderBox = document.createElement("div");
       sliderBox.className = "sliderBox";
@@ -1930,9 +1962,22 @@
       slider.onmouseup = () => {
         PlaySound("snd/tick.mp3");
       };
-      parent.appendChild(sliderBox);
-      parent.appendChild(document.createElement("br"));
-      return sliderBox; // Make sure to return the constructed sliderBox element
+
+      // Add the sliderBox to the wrapper
+      wrapper.appendChild(sliderBox);
+
+      // Add description label to the wrapper if it exists
+      if (setting.description) {
+        const descriptionLabel = document.createElement("label");
+        descriptionLabel.textContent = `(${setting.description})`;
+        wrapper.appendChild(descriptionLabel); // Add the description next to the slider box
+      }
+
+      // Append the wrapper to the parent, instead of just the sliderBox
+      parent.appendChild(wrapper);
+      parent.appendChild(document.createElement("br")); // Ensure there's a break after the slider for clean layout
+
+      return wrapper; // Return the wrapper for reference if needed
     },
     /**
      * Creates a dynamic settings UI for a module.
