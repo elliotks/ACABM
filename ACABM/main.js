@@ -37,8 +37,6 @@
         "Turn the option back on once you fulfill these requirements.",
       krumblorMCompleted: "You have unlocked all Krumblor upgrades:",
       krumblorMRUnlocks: "Petting Krumblor for the remaining unlock(s):",
-      autoBuyMCMConflict:
-        "Auto-Buy is not allowed when CookieMonster mod is enabled.",
       sellAllBuildingsButton: "Sell All",
       autobuyMSellMode:
         "You are currently in Sell mode, switch back to: Buy Mode in the Store Menu.",
@@ -370,10 +368,6 @@
       }
 
       const now = Date.now();
-      if (now < this.nextProc) {
-        // Not yet time for the next process
-        return;
-      }
 
       // Check if the auto-clicker should only click during frenzy/click frenzy
       if (this.settings.frenzy) {
@@ -524,10 +518,6 @@
       }
 
       const now = Date.now();
-      if (now < this.nextProc) {
-        // Not yet time for the next process
-        return;
-      }
 
       // Process each shimmer
       Game.shimmers.forEach((shimmer) => {
@@ -636,10 +626,6 @@
       }
 
       const now = Date.now();
-      if (now < this.nextProc) {
-        // Not yet time for the next process
-        return;
-      }
 
       const hasUnlockedFortune = Game.HasUnlocked("Fortune cookies");
       if (hasUnlockedFortune) {
@@ -757,10 +743,7 @@
       }
 
       const now = Date.now();
-      if (now < this.nextProc) {
-        // Not yet time for the next process
-        return;
-      }
+
       if (Game.elderWrath > 0) {
         let wrinklersMax = Game.getWrinklersMax() - 1;
         if (this.settingsUI.maxWrinklers.max != wrinklersMax) {
@@ -914,10 +897,7 @@
       }
 
       const now = Date.now();
-      if (now < this.nextProc) {
-        // Not yet time for the next process
-        return;
-      }
+
       const unlockMsg = [];
       const offReasons = [];
 
@@ -1034,6 +1014,7 @@
     settings: {
       collapsed: false,
       enabled: false, // Module is disabled by default.
+      delay: 30, // Delay between logic checks
     },
     settingsUI: {
       enabled: {
@@ -1047,12 +1028,16 @@
         },
       },
     },
-
+    nextProc: 0, // Next process time
     // Adjusted logic for checking conditions related to '7's in the prestige and ascend meter levels
     logic() {
       if (!this.settings.enabled || Game.OnAscend || Game.AscendTimer > 0) {
         return;
       }
+
+      // set the current time
+      const now = Date.now();
+
       // Ensure all luck-related upgrades are unlocked
       if (
         Game.HasUnlocked("Lucky digit") &&
@@ -1144,6 +1129,8 @@
           this.stop();
         }
       }
+      // Update the next process time
+      this.nextProc = now + this.settings.delay;
     },
 
     canBePurchased(upgradeName) {
@@ -1274,10 +1261,7 @@
       }
 
       const now = Date.now();
-      if (now < this.nextProc) {
-        // Not yet time for the next process
-        return;
-      }
+
       // Only proceed to create or remove the button based on its current state to minimize DOM operations
       const buttonExists = !!document.getElementById("sellAllBuildingsButton");
       if (this.settings.enabled && !buttonExists) {
@@ -1398,7 +1382,7 @@
     settings: {
       collapsed: false,
       enabled: false,
-      delay: 50, // delay between purchases
+      delay: 1000, // delay between purchases
       protect: false, // Indicates whether
       upgradebyidVault: [227], // Stores IDs of upgrades to add to upgradeVault menu.
       upgradeVault: [], // Stores IDs of upgrades
@@ -1496,26 +1480,8 @@
         return;
       }
 
-      /*
-      if (Game.mods["CookieMonster"]) {
-        let message = `${modTranslate("autoBuyMCMConflict")}`;
-        UIManager.updateModuleStatusMessage(this.id, message);
-        if (this.settings.popupWindowMessage) {
-          this.settings.popupWindowMessage = false;
-          SettingsManager.updateModuleSettings(this.id, {
-            popupWindowMessage: false,
-          });
-        }
-        this.stop();
-        return;
-      }
-      */
-
       const now = Date.now();
-      if (now < this.nextProc) {
-        // Not yet time for the next process
-        return;
-      }
+
       // Check if the user is in sell mode
       if (Game.buyMode === -1) {
         let message = `${modTranslate("autobuyMSellMode")}`;
@@ -1622,7 +1588,9 @@
         this.total++;
       }
       // Update the next process time
-      this.nextProc = now + this.settings.delay;
+      var nextProcWait = wait * 1000 / 2; // convert seconds to milliseconds - divide by 2 to cut the wait time in half to account for wait variation.
+      this.nextProc = (now + this.settings.delay) + (nextProcWait > 0 ? nextProcWait : 0);
+      console.log("Now: ", now, "Setting delay: ", this.settings.delay, "Wait: ", wait, "NPW: ", nextProcWait, "nextProc: ", this.nextProc);
     },
     /**
      * Starts the module.
@@ -2290,6 +2258,25 @@
    * @namespace MainController
    */
   const MainController = {
+    modules: [], // Array to store modules
+
+    // Method to add modules
+    registerModule(module) {
+      this.modules.push(module);
+    },
+
+    // Main update loop
+    update() {
+      const now = Date.now();
+      this.modules.forEach((module) => {
+        // Ensure module has a logic method and is time for it to execute
+        if (!module.settings.enabled) return; // Skip if module is disabled
+        if (module.logic && (!module.nextProc || now >= module.nextProc)) {
+          // console.log(`Executing logic for module: ${module.id} - ${module.nextProc} - ${now}`);
+          module.logic(); // Execute module logic
+        }
+      });
+    },
     /**
      * Initializes the mod framework and its modules.
      */
@@ -2317,6 +2304,19 @@
 
       UIManager.createOptionsMenu(); // Create or extend the options menu
 
+      this.registerModule(autoClicker); // Register autoClicker module
+      this.registerModule(autoBuy); // Register autoBuy module
+      this.registerModule(shimmerClicker); // Register shimmerClicker module
+      this.registerModule(fortuneClicker); // Register fortuneClicker module
+      this.registerModule(wrinklersPopper); // Register wrinklersPopper module
+      this.registerModule(ascendLuck); // Register ascendLuck module
+      this.registerModule(autopetKrumblor); // Register autopetKrumblor module
+      this.registerModule(sellAll); // Register sellAll module
+      // Register other modules as needed
+
+      // Start the update loop, example with setInterval
+      setInterval(() => this.update(), 1000 / Game.fps); // Adjust interval as appropriate
+
       /**
        * Object representing the mod hooks.
        * @typedef {Object} ModHooks
@@ -2333,16 +2333,7 @@
        */
       const modHooks = {
         // Logic to be called every logic tick
-        logic: () => {
-          autoBuy.logic();
-          autoClicker.logic();
-          shimmerClicker.logic();
-          fortuneClicker.logic();
-          wrinklersPopper.logic();
-          ascendLuck.logic();
-          autopetKrumblor.logic();
-          sellAll.logic();
-        },
+        logic: () => {},
         // Called every draw tick
         draw: () => {},
         // Called whenever the player resets. The parameter is true if this is a hard reset, false if it's an ascension.
