@@ -1,7 +1,6 @@
 /**
  * @file Auto Click and Buy Mod for Cookie Clicker.
  * @version 3.0.0
- * @license GPLv3-or-later https://www.gnu.org/licenses/gpl-3.0.html
  * @see {@link https://steamcommunity.com/sharedfiles/filedetails/?id=2823633161&tscn=1690261417 Steam Workshop}
  * @description This file contains the implementation of the Auto Click and Buy Mod for Cookie Clicker.
  */
@@ -147,7 +146,8 @@
             return Game.ObjectsById.filter(function (e) {
               return (
                 [].indexOf(e.id) < 0 &&
-                !autoBuy.settings.buildingVault.includes(e.id)
+                !autoBuy.settings.buildingVault.includes(e.id) &&
+                e.locked === 0
               );
             });
           },
@@ -1382,7 +1382,7 @@
     settings: {
       collapsed: false,
       enabled: false,
-      delay: 1000, // delay between purchases
+      delay: 50, // delay between purchases
       protect: false, // Indicates whether
       upgradebyidVault: [227], // Stores IDs of upgrades to add to upgradeVault menu.
       upgradeVault: [], // Stores IDs of upgrades
@@ -1624,6 +1624,16 @@
         if (this.settings.enabled) {
           this.start();
         }
+      }
+      this.nextProc = 0;
+      if (Game.mods["CookieMonster"]) {
+        // Increase the delay to 1000ms if Cookie Monster is detected due to compatibility issues with the autoBuy module.
+        // Cookie Monster utilizes Game.CalculateGains() to calculate the best item to buy - so both co-existing causes severe performance issues.
+        this.settings.delay = 1000;
+        SettingsManager.updateModuleSettings(this.id, { delay: 1000 });
+      } else {
+        this.settings.delay = 50;
+        SettingsManager.updateModuleSettings(this.id, { delay: 50 });
       }
     },
     /**
@@ -2333,9 +2343,9 @@
        */
       const modHooks = {
         // Logic to be called every logic tick
-        logic: () => {},
+        // logic: () => {},
         // Called every draw tick
-        draw: () => {},
+        // draw: () => {},
         // Called whenever the player resets. The parameter is true if this is a hard reset, false if it's an ascension.
         reset: (hard) => {
           if (hard) {
@@ -2355,19 +2365,19 @@
           }
         },
         // Called when the player reincarnates after an ascension
-        reincarnate: () => {},
+        // reincarnate: () => {},
         // Called when determining news ticker text, should return an array of possible choices to add
-        ticker: () => {},
+        // ticker: () => {},
         // Called when determining the CpS, parameter is the current CpS, should return the modified CpS
-        cps: () => {},
+        // cps: () => {},
         // Called when determining the cookies per click, parameter is the current value, should return the modified value
-        cookiesPerClick: () => {},
+        // cookiesPerClick: () => {},
         // Called when the big cookie is clicked
-        click: () => {},
+        // click: () => {},
         // Called after the game declares all buildings, buffs, upgrades, and achievements. use this to declare your own - note that while the game distinguishes between vanilla and non-vanilla content, saving/loading functionality for custom content (including stuff like active buffs or permanent upgrade slotting) is not explicitly implemented and may be unpredictable and broken
-        create: () => {},
+        // create: () => {},
         // Called for periodic checks (e.g., for upgrade/achievement unlock conditions) called every few seconds when we check for upgrade/achiev unlock conditions, you can also use this for other checks that you don't need happening every logic frame
-        check: () => {},
+        // check: () => {},
       };
 
       // Dynamically register all mod hooks that have actual implementations
