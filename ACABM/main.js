@@ -74,55 +74,117 @@
       // Russian
     },
   };
-
+  
   function modTranslate(key, ...placeholders) {
-    // Fetch the current language setting from Cookie Clicker
     const lang = locId || "EN"; // Default to 'EN' if locId is not set
-
-    // Access the translation string using the key; fallback to English if the key doesn't exist in the current language
-    let translation =
-      modTranslations[lang][key] || modTranslations["EN"][key] || key;
-
-    // Replace placeholders in the translation string with provided arguments
+    let translation = modTranslations[lang][key] || modTranslations["EN"][key] || key;
     placeholders.forEach((value, index) => {
       translation = translation.replace(`{${index}}`, value);
     });
-
     return translation;
   }
 
-  /**
-   * Calculator class for calculating the best item to buy based on the current game state.
-   *
-   * @class
-   */
-  class Calculator {
-    /**
-     * Creates an instance of Calculator.
-     * @memberof Calculator
-     */
+  class Mod {
     constructor() {
-      /**
-       * Schema for the Calculator class.
-       * @type {Array}
-       * @property {Function} objects - Returns an array of objects to be used in the schema.
-       * @property {Object} accessors - Accessors for the objects in the schema.
-       * @property {Function} accessors.add - Adds an object to the schema.
-       * @property {Function} accessors.sub - Removes an object from the schema.
-       * @property {Function} accessors.price - Returns the price of an object.
-       * @property {Function} accessors.lasting - Returns the lasting value of an object.
-       */
+      this.modules = [];
+      this.settings = {};
+      this.defaultSettings = {};
+    }
+  
+    registerModule(module) {
+      this.modules.push(module);
+    }
+  
+    init() {
+      this.modules.forEach(module => module.init());
+      UIManager.createOptionsMenu(this.modules);
+      setInterval(() => this.update(), 1000 / Game.fps);
+    }
+  
+    update() {
+      const now = Date.now();
+      this.modules.forEach(module => {
+        if (!module.settings.enabled) return;
+        if (module.logic && (!module.nextProc || now >= module.nextProc)) {
+          module.logic();
+        }
+      });
+    }
+  
+    save() {
+      const saveData = {};
+      this.modules.forEach(module => {
+        saveData[module.id] = module.settings;
+      });
+      return JSON.stringify(saveData);
+    }
+  
+    load(saveString) {
+      const savedSettings = JSON.parse(saveString);
+      // console.log("Loading saved settings:", savedSettings);
+      this.modules.forEach(module => {
+        if (savedSettings.hasOwnProperty(module.id)) {
+          const moduleSettings = savedSettings[module.id];
+          module.settings = { ...module.settings, ...moduleSettings };
+          // console.log(`Loaded settings for module ${module.id}:`, module.settings);
+        }
+      });
+    }
+  }
+  
+  class Module {
+    constructor(id, name, settings, settingsUI) {
+      this.id = id;
+      this.name = name;
+      this.settings = settings;
+      this.settingsUI = settingsUI;
+      this.nextProc = 0;
+    }
+  
+    init() {
+      const loadedSettings = SettingsManager.loadModuleSettings(this.id);
+      if (loadedSettings) {
+        // Merge the loaded settings with the default settings
+        this.settings = { ...this.settings, ...loadedSettings };
+        // console.log(`Initialized module ${this.id} with settings:`, this.settings);
+  
+        // Start the module if it's enabled
+        if (this.settings.enabled) {
+          this.start();
+        }
+      } else {
+        console.log(`No saved settings found for module ${this.id}. Using default settings:`, this.settings);
+      }
+      mod.defaultSettings[this.id] = { ...this.settings };
+    }
+  
+    start() {
+      this.settings.enabled = true;
+      SettingsManager.updateModuleSettings(this.id, { enabled: true });
+      // console.log(`Started module ${this.id}`);
+    }
+  
+    stop() {
+      this.settings.enabled = false;
+      SettingsManager.updateModuleSettings(this.id, { enabled: false });
+      // console.log(`Stopped module ${this.id}`);
+    }
+  }
+
+  class Calculator {
+    constructor() {
       this.schema = [
         {
           objects: function () {
             return Game.UpgradesInStore.filter(function (e) {
+              const autoBuyModule = mod.modules.find(module => module.id === "autoBuy");
               return (
                 [].indexOf(e.id) < 0 &&
                 e.pool != "prestige" &&
                 e.pool != "toggle" &&
                 !Game.vault.includes(e.id) &&
-                !autoBuy.settings.upgradeVault.includes(e.id) &&
-                !autoBuy.settings.techVault.includes(e.id)
+                !(autoBuyModule?.settings.upgradeVault.includes(e.id)) &&
+                !(autoBuyModule?.settings.techVault.includes(e.id))
               );
             });
           },
@@ -144,9 +206,10 @@
         {
           objects: function () {
             return Game.ObjectsById.filter(function (e) {
+              const autoBuyModule = mod.modules.find(module => module.id === "autoBuy");
               return (
                 [].indexOf(e.id) < 0 &&
-                !autoBuy.settings.buildingVault.includes(e.id) &&
+                !(autoBuyModule?.settings.buildingVault.includes(e.id)) &&
                 e.locked === 0
               );
             });
@@ -168,36 +231,15 @@
         },
       ];
     }
-
-    /**
-     * Calculates the cps_acc value.
-     * @memberof Calculator
-     * @param {number} base_cps - The base cps value.
-     * @param {number} new_cps - The new cps value.
-     * @param {number} price - The price of the object.
-     * @returns {number} The cps_acc value.
-     */
+  
     cps_acc(base_cps, new_cps, price) {
       return (base_cps * base_cps * (new_cps - base_cps)) / (price * price);
     }
-
-    /**
-     * Calculates the ecps value.
-     * @memberof Calculator
-     * @returns {number} The ecps value.
-     */
+  
     ecps() {
       return Game.cookiesPs * (1 - Game.cpsSucked);
     }
-
-    /**
-     * Calculates the bonus value.
-     * @memberof Calculator
-     * @param {Object} item - The item to calculate the bonus for.
-     * @param {Function} list_generator - The list generator function.
-     * @param {number} mouse_rate - The mouse rate value.
-     * @returns {Array} The bonus value.
-     */
+  
     calc_bonus(item, list_generator, mouse_rate) {
       // Temporarily override Game.Win
       var funcGW = Game.Win;
@@ -217,7 +259,7 @@
         originalState.CalculateGains.call(Game); // Call the original CalculateGains
         Game.cookiesPsRawHighest = originalRawHighest; // Restore cookiesPsRawHighest after the call
       };
-
+  
       var res = list_generator().map(
         function (e) {
           var lasting = this.item.lasting(e);
@@ -234,7 +276,7 @@
               30 *
               (Game.dragonLevel < Game.dragonLevels.length - 1 ? 1 : 0.1);
           }
-
+  
           this.item.add(e);
           Game.CalculateGains();
           var cps = this.calc.ecps() + Game.computedMouseCps * this.rate;
@@ -254,25 +296,18 @@
             Game.computedMouseCps * mouse_rate,
         })
       );
-
+  
       Game.Win = funcGW; // Restore Game.Win
       Game.CalculateGains = originalState.CalculateGains; // Restore Game.CalculateGains
       Game.cookiesPsRawHighest = originalState.cookiesPsRawHighest; // Restore cookiesPsRawHighest
-
+  
       return res;
     }
-
-    /**
-     * Finds the best value.
-     * @memberof Calculator
-     * @param {number} mouse_rate - The mouse rate value.
-     * @returns {Object} The best value.
-     */
-
+  
     find_best(mouse_rate) {
       var pool = [];
       var zero_buy = Math.sqrt(Game.cookiesEarned * Game.cookiesPs);
-
+  
       for (var i = 0; i < this.schema.length; i++)
         pool = pool.concat(
           this.calc_bonus(
@@ -281,7 +316,7 @@
             mouse_rate || 0
           )
         );
-
+  
       return pool.reduce(function (m, v) {
         return m.acc == 0 && m.price < zero_buy
           ? m
@@ -294,73 +329,45 @@
     }
   }
 
-  /**
-   * Represents an Auto-Clicker module.
-   * @typedef {Object} autoClicker
-   * @property {string} id - Unique identifier for the Auto-Clicker module.
-   * @property {string} name - Friendly name of the Auto-Clicker module.
-   * @property {Object} settings - Settings for the Auto-Clicker module.
-   * @property {boolean} settings.collapsed - Indicates whether the settings are collapsed or not.
-   * @property {boolean} settings.enabled - Indicates whether the Auto-Clicker is enabled or not.
-   * @property {number} settings.delay - The delay (in milliseconds) between each click.
-   * @property {Object} settingsUI - User interface settings for the Auto-Clicker module.
-   * @property {Object} settingsUI.enabled - Toggle setting for enabling/disabling the Auto-Clicker.
-   * @property {string} settingsUI.enabled.type - Type of the toggle setting.
-   * @property {string} settingsUI.enabled.label - Label for the toggle setting.
-   * @property {string} settingsUI.enabled.description - Description for the toggle setting.
-   * @property {Object} settingsUI.delay - Slider setting for specifying the click speed.
-   * @property {string} settingsUI.delay.type - Type of the slider setting.
-   * @property {string} settingsUI.delay.label - Label for the slider setting.
-   * @property {number} settingsUI.delay.min - Minimum value for the slider setting.
-   * @property {number} settingsUI.delay.max - Maximum value for the slider setting.
-   * @property {number} settingsUI.delay.step - Step value for the slider setting.
-   * @property {string} settingsUI.delay.unit - Unit for the slider setting.
-   * @property {number} nextProc - Timestamp for the next click.
-   * @property {Function} logic - Performs the logic for the Auto-Clicker module.
-   * @property {Function} start - Starts the Auto-Clicker module.
-   * @property {Function} stop - Stops the Auto-Clicker module.
-   * @property {Function} init - Initializes the Auto-Clicker module.
-   */
-  const autoClicker = {
-    id: "autoClicker", // Unique identifier
-    name: "Auto-Clicker", // Friendly name of the AutoClicker module
-    settings: {
-      collapsed: false,
-      enabled: false,
-      delay: 50,
-      frenzy: false,
-    },
-    settingsUI: {
-      enabled: {
-        type: "toggle",
-        label: "Auto-Clicker",
-        description: "Automatically clicks the cookie at a specified speed.",
-        actions: {
-          // Define custom actions for this toggle
-          start: () => autoClicker.start(),
-          stop: () => autoClicker.stop(),
+  class AutoClicker extends Module {
+    constructor() {
+      super(
+        "autoClicker",
+        "Auto-Clicker",
+        {
+          enabled: false,
+          delay: 50,
+          collapsed: false,
+          frenzy: false,
         },
-      },
-      frenzy: {
-        type: "toggle",
-        label: "Frenzy",
-        description: "Only Auto-click BigCookie during frenzy/click frenzy.",
-      },
-      delay: {
-        type: "slider",
-        label: "Auto-Click Speed (ms)",
-        min: 50,
-        max: 3000,
-        step: 50,
-        unit: "ms", // Specifying the unit for the delay setting
-        description: "The delay between each click in milliseconds.",
-      },
-    },
-    nextProc: 0,
-    /**
-     * Performs the logic for the autoClicker.
-     * If the autoClicker is enabled, it clicks the cookie based on the specified delay.
-     */
+        {
+          enabled: {
+            type: "toggle",
+            label: "Auto-Clicker",
+            description: "Automatically clicks the cookie at a specified speed.",
+            actions: {
+              start: () => this.start(),
+              stop: () => this.stop(),
+            },
+          },
+          frenzy: {
+            type: "toggle",
+            label: "Frenzy",
+            description: "Only Auto-click BigCookie during frenzy/click frenzy.",
+          },
+          delay: {
+            type: "slider",
+            label: "Auto-Click Speed (ms)",
+            min: 50,
+            max: 3000,
+            step: 50,
+            unit: "ms",
+            description: "The delay between each click in milliseconds.",
+          },
+        }
+      );
+    }
+
     logic() {
       // Exit early if disabled, during ascend or ascend timer is active
       if (!this.settings.enabled || Game.OnAscend || Game.AscendTimer > 0) {
@@ -382,135 +389,57 @@
 
       // Update next processing time
       this.nextProc = now + this.settings.delay;
-    },
-    /**
-     * Starts the module.
-     */
-    start() {
-      this.settings.enabled = true;
-      // Update settings in SettingsManager
-      SettingsManager.updateModuleSettings(this.id, { enabled: true });
-    },
-    /**
-     * Stops the module.
-     */
-    stop() {
-      this.settings.enabled = false;
-      // Update settings in SettingsManager
-      SettingsManager.updateModuleSettings(this.id, { enabled: false });
-    },
-    /**
-     * Initializes the module.
-     * Loads settings from SettingsManager and starts the module if enabled.
-     */
-    init() {
-      var loadedSettings = SettingsManager.loadModuleSettings(this.id);
-      if (loadedSettings) {
-        this.settings = { ...this.settings, ...loadedSettings };
-        if (this.settings.enabled) {
-          this.start();
-        }
-      }
-    },
-  };
+    }
+  }
 
-  /**
-   * Represents a shimmer auto-clicker module.
-   * @typedef {Object} ShimmerClicker
-   * @property {string} id - The unique identifier of the shimmer clicker.
-   * @property {string} name - The name of the shimmer auto-clicker.
-   * @property {Object} settings - The settings for the shimmer auto-clicker.
-   * @property {boolean} settings.collapsed - Indicates whether the settings are collapsed or not.
-   * @property {boolean} settings.enabled - Overall module toggle.
-   * @property {number} settings.delay - Delay between checks.
-   * @property {boolean} settings.golden - Whether to click on golden cookies.
-   * @property {boolean} settings.wrath - Whether to click on wrath cookies.
-   * @property {boolean} settings.skipForcedWrath - Whether to skip clicking on wrath cookies with forced wrath.
-   * @property {boolean} settings.reindeer - Whether to click on reindeer.
-   * @property {Object} settingsUI - The UI settings for the shimmer auto-clicker.
-   * @property {Object} settingsUI.enabled - The toggle setting for the shimmer auto-clicker.
-   * @property {string} settingsUI.enabled.type - The type of the toggle setting.
-   * @property {string} settingsUI.enabled.label - The label for the toggle setting.
-   * @property {string} settingsUI.enabled.description - The description for the toggle setting.
-   * @property {Object} settingsUI.enabled.actions - The actions for the toggle setting.
-   * @property {Function} settingsUI.enabled.actions.start - The function to start the shimmer auto-clicker.
-   * @property {Function} settingsUI.enabled.actions.stop - The function to stop the shimmer auto-clicker.
-   * @property {Object} settingsUI.golden - The toggle setting for golden cookies.
-   * @property {string} settingsUI.golden.type - The type of the toggle setting.
-   * @property {string} settingsUI.golden.label - The label for the toggle setting.
-   * @property {string} settingsUI.golden.description - The description for the toggle setting.
-   * @property {Object} settingsUI.wrath - The toggle setting for wrath cookies.
-   * @property {string} settingsUI.wrath.type - The type of the toggle setting.
-   * @property {string} settingsUI.wrath.label - The label for the toggle setting.
-   * @property {string} settingsUI.wrath.description - The description for the toggle setting.
-   * @property {Object} settingsUI.skipForcedWrath - The toggle setting for skipping forced wrath cookies.
-   * @property {string} settingsUI.skipForcedWrath.type - The type of the toggle setting.
-   * @property {string} settingsUI.skipForcedWrath.label - The label for the toggle setting.
-   * @property {string} settingsUI.skipForcedWrath.description - The description for the toggle setting.
-   * @property {Object} settingsUI.reindeer - The toggle setting for reindeer.
-   * @property {string} settingsUI.reindeer.type - The type of the toggle setting.
-   * @property {string} settingsUI.reindeer.label - The label for the toggle setting.
-   * @property {string} settingsUI.reindeer.description - The description for the toggle setting.
-   * @property {number} nextProc - The next process for the shimmerClicker.
-   * @property {Function} logic - The logic function for the shimmerClicker.
-   * @property {Function} start - The function to start the shimmerClicker.
-   * @property {Function} stop - The function to stop the shimmerClicker.
-   * @property {Function} init - The initialization function for the shimmerClicker.
-   */
-  const shimmerClicker = {
-    id: "shimmerClicker",
-    name: "Shimmer Auto-Clicker",
-    settings: {
-      collapsed: false,
-      enabled: false, // Overall module toggle
-      delay: 100, // Delay between checks
-      golden: true,
-      wrath: true,
-      skipForcedWrath: false,
-      reindeer: true,
-    },
-    settingsUI: {
-      enabled: {
-        type: "toggle",
-        label: "Shimmer Auto-Clicker",
-        description:
-          "Automatically clicks on shimmers (Golden Cookies, Reindeer, Wrath Cookies).",
-        actions: {
-          start: () => shimmerClicker.start(),
-          stop: () => shimmerClicker.stop(),
+  class ShimmerClicker extends Module {
+    constructor() {
+      super(
+        "shimmerClicker",
+        "Shimmer Auto-Clicker",
+        {
+          enabled: false,
+          delay: 100,
+          collapsed: false,
+          golden: true,
+          wrath: true,
+          skipForcedWrath: false,
+          reindeer: true,
         },
-      },
-      golden: {
-        type: "toggle",
-        label: "Golden Cookies",
-        description:
-          "While Shimmer Auto-Clicker enabled, Golden Cookies will be clicked.",
-      },
-      wrath: {
-        type: "toggle",
-        label: "Wrath Cookies",
-        description:
-          "While Shimmer Auto-Clicker enabled, Wrath Cookies will be clicked.",
-      },
-      skipForcedWrath: {
-        type: "toggle",
-        label: "Skip Forced Wrath",
-        description:
-          "While Shimmer Auto-Clicker enabled, Wrath Cookies with Forced Wrath will not be clicked.",
-      },
-      reindeer: {
-        type: "toggle",
-        label: "Reindeer",
-        description:
-          "While Shimmer Auto-Clicker enabled, Reindeer will be clicked.",
-      },
-    },
-    nextProc: 0, // Next process for the shimmerClicker
-    /**
-     * Performs the logic for the ACABM feature.
-     * If the ACABM feature is enabled, it checks the current time and processes the shimmers accordingly.
-     * The shimmers are popped based on the settings provided.
-     */
+        {
+          enabled: {
+            type: "toggle",
+            label: "Shimmer Auto-Clicker",
+            description: "Automatically clicks on shimmers (Golden Cookies, Reindeer, Wrath Cookies).",
+            actions: {
+              start: () => this.start(),
+              stop: () => this.stop(),
+            },
+          },
+          golden: {
+            type: "toggle",
+            label: "Golden Cookies",
+            description: "While Shimmer Auto-Clicker enabled, Golden Cookies will be clicked.",
+          },
+          wrath: {
+            type: "toggle",
+            label: "Wrath Cookies",
+            description: "While Shimmer Auto-Clicker enabled, Wrath Cookies will be clicked.",
+          },
+          skipForcedWrath: {
+            type: "toggle",
+            label: "Skip Forced Wrath",
+            description: "While Shimmer Auto-Clicker enabled, Wrath Cookies with Forced Wrath will not be clicked.",
+          },
+          reindeer: {
+            type: "toggle",
+            label: "Reindeer",
+            description: "While Shimmer Auto-Clicker enabled, Reindeer will be clicked.",
+          },
+        }
+      );
+    }
+
     logic() {
       // Exit early if disabled, during ascend or ascend timer is active
       if (!this.settings.enabled || Game.OnAscend || Game.AscendTimer > 0) {
@@ -541,84 +470,33 @@
 
       // Update next processing time
       this.nextProc = now + this.settings.delay;
-    },
-    /**
-     * Starts the module.
-     */
-    start() {
-      this.settings.enabled = true;
-      SettingsManager.updateModuleSettings(this.id, { enabled: true });
-    },
-    /**
-     * Stops the module.
-     */
-    stop() {
-      this.settings.enabled = false;
-      SettingsManager.updateModuleSettings(this.id, { enabled: false });
-    },
-    /**
-     * Initializes the module.
-     * Loads settings from SettingsManager and starts the module if enabled.
-     */
-    init() {
-      let loadedSettings = SettingsManager.loadModuleSettings(this.id);
-      if (loadedSettings) {
-        this.settings = { ...this.settings, ...loadedSettings };
-        if (this.settings.enabled) {
-          this.start();
-        }
-      }
-    },
-  };
+    }
+  }
 
-  /**
-   * Represents the Fortune Auto-Clicker module.
-   * @typedef {Object} FortuneClicker
-   * @property {string} id - Unique identifier for the module.
-   * @property {string} name - Friendly name of the module.
-   * @property {Object} settings - Module settings.
-   * @property {boolean} settings.collapsed - Indicates whether the settings are collapsed or not.
-   * @property {boolean} settings.enabled - Indicates if the module is enabled.
-   * @property {number} settings.delay - Delay between logic checks.
-   * @property {Object} settingsUI - User interface settings for the module.
-   * @property {Object} settingsUI.enabled - Toggle settings for enabling/disabling the module.
-   * @property {string} settingsUI.enabled.type - Type of the toggle setting.
-   * @property {string} settingsUI.enabled.label - Label for the toggle setting.
-   * @property {string} settingsUI.enabled.description - Description for the toggle setting.
-   * @property {Object} settingsUI.enabled.actions - Actions to be performed when the toggle setting is changed.
-   * @property {Function} settingsUI.enabled.actions.start - Function to start the module.
-   * @property {Function} settingsUI.enabled.actions.stop - Function to stop the module.
-   * @property {number} nextProc - Next process for the fortuneClicker.
-   * @property {Function} logic - The logic function for the fortuneClicker module.
-   * @property {Function} start - Starts the module.
-   * @property {Function} stop - Stops the module.
-   * @property {Function} init - Initializes the module.
-   */
-  const fortuneClicker = {
-    id: "fortuneClicker", // Unique identifier for the module
-    name: "Fortune Auto-Clicker", // Friendly name of the module
-    settings: {
-      collapsed: false,
-      enabled: false, // By default, the module is not enabled
-      delay: 2000, // Delay between logic checks
-    },
-    settingsUI: {
-      enabled: {
-        type: "toggle",
-        label: "Fortune Clicker",
-        description:
-          "Automatically clicks on Fortune News Tickers. (Requires 'Fortune cookies' upgrade)",
-        actions: {
-          start: () => fortuneClicker.start(),
-          stop: () => fortuneClicker.stop(),
+  class FortuneClicker extends Module {
+    constructor() {
+      super(
+        "fortuneClicker",
+        "Fortune Auto-Clicker",
+        {
+          enabled: false,
+          delay: 2000,
+          collapsed: false,
         },
-      },
-    },
-    nextProc: 0, // Next process for the fortuneClicker
-    /**
-     * The logic function for the fortuneClicker module.
-     * Automatically clicks the fortune ticker if the "Fortune cookies" upgrade is unlocked.
-     */
+        {
+          enabled: {
+            type: "toggle",
+            label: "Fortune Clicker",
+            description: "Automatically clicks on Fortune News Tickers. (Requires 'Fortune cookies' upgrade)",
+            actions: {
+              start: () => this.start(),
+              stop: () => this.stop(),
+            },
+          },
+        }
+      );
+    }
+
     logic() {
       // Exit early if disabled, during ascend or ascend timer is active
       if (!this.settings.enabled || Game.OnAscend || Game.AscendTimer > 0) {
@@ -643,99 +521,48 @@
 
       // Update the next process time
       this.nextProc = now + this.settings.delay;
-    },
-    /**
-     * Starts the module.
-     */
-    start() {
-      this.settings.enabled = true;
-      SettingsManager.updateModuleSettings(this.id, { enabled: true });
-    },
+    }
+  }
 
-    /**
-     * Stops the module.
-     */
-    stop() {
-      this.settings.enabled = false;
-      SettingsManager.updateModuleSettings(this.id, { enabled: false });
-    },
-    /**
-     * Initializes the module.
-     * Loads settings from SettingsManager and starts the module if enabled.
-     */
-    init() {
-      let loadedSettings = SettingsManager.loadModuleSettings(this.id);
-      if (loadedSettings) {
-        this.settings = { ...this.settings, ...loadedSettings };
-        if (this.settings.enabled) {
-          this.start();
-        }
-      }
-    },
-  };
-
-  /**
-   * Represents a module for automatically popping wrinklers in the game.
-   * @typedef {Object} wrinklersPopper
-   * @property {string} id - The unique identifier of the module.
-   * @property {string} name - The name of the module.
-   * @property {Object} settings - The settings for the module.
-   * @property {boolean} settings.collapsed - Indicates whether the settings are collapsed or not.
-   * @property {boolean} settings.enabled - Indicates whether the module is enabled or not.
-   * @property {number} settings.delay - The delay between checks in milliseconds.
-   * @property {boolean} settings.popShiny - Indicates whether to pop shiny wrinklers or not.
-   * @property {number} settings.maxWrinklers - The maximum number of wrinklers to pop.
-   * @property {Object} settingsUI - The user interface settings for the module.
-   * @property {Object} settingsUI.enabled - The toggle setting for enabling/disabling the module.
-   * @property {Object} settingsUI.popShiny - The toggle setting for popping shiny wrinklers.
-   * @property {Object} settingsUI.maxWrinklers - The slider setting for the maximum number of wrinklers.
-   * @property {number} nextProc - The timestamp of the next process.
-   * @property {Function} logic - Performs the logic for popping wrinklers based on the specified settings.
-   * @property {Function} init - Initializes the module and loads settings.
-   * @property {Function} start - Starts the module.
-   * @property {Function} stop - Stops the module.
-   */
-  const wrinklersPopper = {
-    id: "wrinklersPopper",
-    name: "Wrinklers Auto-Popper",
-    settings: {
-      collapsed: false,
-      enabled: false, // Module is disabled by default.
-      delay: 2000, // Delay between checks
-      popShiny: false, // By default, do not pop shiny wrinklers.
-      maxWrinklers: -1, // Default value to determine when to pop wrinklers.
-    },
-    settingsUI: {
-      enabled: {
-        type: "toggle",
-        label: "Wrinklers Auto-Popper",
-        description:
-          "Automatically pops the fattest normal wrinkler when reaching max wrinklers.",
-        actions: {
-          start: () => wrinklersPopper.start(),
-          stop: () => wrinklersPopper.stop(),
+  class WrinklersPopper extends Module {
+    constructor() {
+      super(
+        "wrinklersPopper",
+        "Wrinklers Auto-Popper",
+        {
+          enabled: false,
+          delay: 2000,
+          collapsed: false,
+          popShiny: false,
+          maxWrinklers: -1,
         },
-      },
-      popShiny: {
-        type: "toggle",
-        label: "Pop Shiny Wrinklers",
-        description:
-          "Allows popping of shiny wrinklers if no normal wrinklers are available.",
-      },
-      maxWrinklers: {
-        type: "slider",
-        label: "Max Wrinklers",
-        min: 1,
-        max: 9,
-        step: 1,
-        description:
-          "The maximum number of wrinklers to pop. The max value is your max wrinklers - 1.",
-      },
-    },
-    nextProc: 0,
-    /**
-     * Performs the logic for popping wrinklers based on the specified settings.
-     */
+        {
+          enabled: {
+            type: "toggle",
+            label: "Wrinklers Auto-Popper",
+            description: "Automatically pops the fattest normal wrinkler when reaching max wrinklers.",
+            actions: {
+              start: () => this.start(),
+              stop: () => this.stop(),
+            },
+          },
+          popShiny: {
+            type: "toggle",
+            label: "Pop Shiny Wrinklers",
+            description: "Allows popping of shiny wrinklers if no normal wrinklers are available.",
+          },
+          maxWrinklers: {
+            type: "slider",
+            label: "Max Wrinklers",
+            min: 1,
+            max: 9,
+            step: 1,
+            description: "The maximum number of wrinklers to pop. The max value is your max wrinklers - 1.",
+          },
+        }
+      );
+    }
+
     logic() {
       // Exit early if disabled, during ascend or ascend timer is active
       if (!this.settings.enabled || Game.OnAscend || Game.AscendTimer > 0) {
@@ -804,22 +631,12 @@
         // Update the next process time
         this.nextProc = now + this.settings.delay;
       }
-    },
-    /**
-     * Initializes the module.
-     * Loads settings from SettingsManager and starts the module if enabled.
-     */
+    }
+
     init() {
-      // Initialize maxWrinklers setting if not already set
-
-      var loadedSettings = SettingsManager.loadModuleSettings(this.id);
-      if (loadedSettings) {
-        this.settings = { ...this.settings, ...loadedSettings };
-        if (this.settings.enabled) {
-          this.start();
-        }
-      }
-
+      super.init(); // Call the parent class's init() method first
+  
+      // Custom initialization code for WrinklersPopper
       if (this.settings.maxWrinklers == -1) {
         this.settings.maxWrinklers = Game.getWrinklersMax() - 1;
         this.settingsUI.maxWrinklers.max = this.settings.maxWrinklers;
@@ -827,69 +644,33 @@
           maxWrinklers: this.settings.maxWrinklers,
         });
       }
-    },
-    /**
-     * Starts the module.
-     */
-    start() {
-      this.settings.enabled = true;
-      SettingsManager.updateModuleSettings(this.id, { enabled: true });
-    },
-    /**
-     * Stops the module.
-     */
-    stop() {
-      this.settings.enabled = false;
-      SettingsManager.updateModuleSettings(this.id, { enabled: false });
-    },
-  };
+    }
+  }
 
-  /**
-   * Auto-Pet Krumblor module.
-   * Automatically pets Krumblor when the dragon menu is open, unlocking dragon upgrades if available.
-   *
-   * @typedef {Object} autopetKrumblor
-   * @property {string} id - The unique identifier for the module.
-   * @property {string} name - The name of the module.
-   * @property {Object} settings - The settings for the module.
-   * @property {boolean} settings.collapsed - Indicates whether the settings are collapsed or not.
-   * @property {boolean} settings.enabled - Indicates whether the module is enabled or disabled.
-   * @property {number} settings.delay - The delay between logic checks.
-   * @property {Object} settingsUI - The user interface settings for the module.
-   * @property {Object} settingsUI.enabled - The toggle settings for enabling/disabling the module.
-   * @property {string} settingsUI.enabled.type - The type of the toggle setting.
-   * @property {string} settingsUI.enabled.label - The label for the toggle setting.
-   * @property {string} settingsUI.enabled.description - The description for the toggle setting.
-   * @property {Object} settingsUI.enabled.actions - The actions to be performed when the toggle setting is changed.
-   * @property {Function} settingsUI.enabled.actions.start - The function to start the module.
-   * @property {Function} settingsUI.enabled.actions.stop - The function to stop the module.
-   * @property {number} nextProc - The timestamp of the next process time.
-   * @property {Function} logic - The logic function for the module.
-   * @property {Function} init - Initializes the module.
-   * @property {Function} start - Starts the module.
-   * @property {Function} stop - Stops the module.
-   */
-  const autopetKrumblor = {
-    id: "autopetKrumblor",
-    name: "Auto-Pet Krumblor",
-    settings: {
-      collapsed: false,
-      enabled: false, // Module is disabled by default.
-      delay: 500, // Delay between logic checks
-    },
-    settingsUI: {
-      enabled: {
-        type: "toggle",
-        label: "Auto-Pet Krumblor",
-        description:
-          "Automatically pets Krumblor when the dragon menu is open, unlocking dragon upgrades if available.",
-        actions: {
-          start: () => autopetKrumblor.start(),
-          stop: () => autopetKrumblor.stop(),
+  class AutoPetKrumblor extends Module {
+    constructor() {
+      super(
+        "autopetKrumblor",
+        "Auto-Pet Krumblor",
+        {
+          enabled: false,
+          collapsed: false,
+          delay: 500,
         },
-      },
-    },
-    nextProc: 0,
+        {
+          enabled: {
+            type: "toggle",
+            label: "Auto-Pet Krumblor",
+            description: "Automatically pets Krumblor when the dragon menu is open, unlocking dragon upgrades if available.",
+            actions: {
+              start: () => this.start(),
+              stop: () => this.stop(),
+            },
+          },
+        }
+      );
+    }
+
     logic() {
       // Exit early if disabled, during ascend or ascend timer is active
       if (!this.settings.enabled || Game.OnAscend || Game.AscendTimer > 0) {
@@ -955,81 +736,33 @@
 
       // Update the next process time
       this.nextProc = now + this.settings.delay;
-    },
-    /**
-     * Initializes the module.
-     * Loads settings from SettingsManager and starts the module if enabled.
-     */
-    init() {
-      var loadedSettings = SettingsManager.loadModuleSettings(this.id);
-      if (loadedSettings) {
-        this.settings = { ...this.settings, ...loadedSettings };
-        if (this.settings.enabled) {
-          this.start();
-        }
-      }
-    },
-    /**
-     * Starts the module.
-     */
-    start() {
-      this.settings.enabled = true;
-      SettingsManager.updateModuleSettings(this.id, { enabled: true });
-    },
-    /**
-     * Stops the module.
-     */
-    stop() {
-      this.settings.enabled = false;
-      SettingsManager.updateModuleSettings(this.id, { enabled: false });
-    },
-  };
+    }
+  }
 
-  /**
-   * Represents the Ascend Luck module.
-   * @typedef {Object} ascendLuck
-   * @property {string} id - The unique identifier of the module.
-   * @property {string} name - The name of the module.
-   * @property {Object} settings - The settings of the module.
-   * @property {boolean} settings.collapsed - Indicates whether the settings are collapsed or not.
-   * @property {boolean} settings.enabled - Indicates whether the module is enabled or not.
-   * @property {Object} settingsUI - The user interface settings of the module.
-   * @property {Object} settingsUI.enabled - The settings for enabling the module.
-   * @property {string} settingsUI.enabled.type - The type of the settings (toggle).
-   * @property {string} settingsUI.enabled.label - The label for the settings.
-   * @property {string} settingsUI.enabled.description - The description for the settings.
-   * @property {Object} settingsUI.enabled.actions - The actions associated with the settings.
-   * @property {Function} settingsUI.enabled.actions.start - The function to start the module.
-   * @property {Function} settingsUI.enabled.actions.stop - The function to stop the module.
-   * @property {Function} logic - The logic function of the module.
-   * @property {Function} canBePurchased - Checks if an upgrade can be purchased.
-   * @property {Function} doAscendLuck - Performs the Ascend action for luck upgrades.
-   * @property {Function} init - Initializes the module.
-   * @property {Function} start - Starts the module.
-   * @property {Function} stop - Stops the module.
-   */
-  const ascendLuck = {
-    id: "ascendLuck",
-    name: "Ascend Luck",
-    settings: {
-      collapsed: false,
-      enabled: false, // Module is disabled by default.
-      delay: 30, // Delay between logic checks
-    },
-    settingsUI: {
-      enabled: {
-        type: "toggle",
-        label: "Ascend Luck",
-        description:
-          "Used for unlocking Lucky digit, Lucky number, and Lucky payout. Automatically Ascends you when conditions are met and toggles this feature to off. Turn back on manually if you have more to unlock. Does not buy the Heavenly upgrade for you.",
-        actions: {
-          start: () => ascendLuck.start(),
-          stop: () => ascendLuck.stop(),
+  class AscendLuck extends Module {
+    constructor() {
+      super(
+        "ascendLuck",
+        "Ascend Luck",
+        {
+          enabled: false,
+          collapsed: false,
+          delay: 30,
         },
-      },
-    },
-    nextProc: 0, // Next process time
-    // Adjusted logic for checking conditions related to '7's in the prestige and ascend meter levels
+        {
+          enabled: {
+            type: "toggle",
+            label: "Ascend Luck",
+            description: "Used for unlocking Lucky digit, Lucky number, and Lucky payout. Automatically Ascends you when conditions are met and toggles this feature to off. Turn back on manually if you have more to unlock. Does not buy the Heavenly upgrade for you.",
+            actions: {
+              start: () => this.start(),
+              stop: () => this.stop(),
+            },
+          },
+        }
+      );
+    }
+
     logic() {
       if (!this.settings.enabled || Game.OnAscend || Game.AscendTimer > 0) {
         return;
@@ -1131,7 +864,7 @@
       }
       // Update the next process time
       this.nextProc = now + this.settings.delay;
-    },
+    }
 
     canBePurchased(upgradeName) {
       const upgrade = Game.UpgradesByPool["prestige"].find(
@@ -1159,7 +892,7 @@
         UIManager.updateModuleStatusMessage(this.id, message);
         return false; // Insufficient Heavenly Chips
       }
-    },
+    }
 
     doAscendLuck() {
       if (Game.ascensionMode !== 0) return;
@@ -1170,90 +903,39 @@
         this.id,
         "Ascension performed for luck upgrades."
       );
-    },
+    }
+  }
 
-    init() {
-      var loadedSettings = SettingsManager.loadModuleSettings(this.id);
-      if (loadedSettings) {
-        this.settings = { ...this.settings, ...loadedSettings };
-        if (this.settings.enabled) {
-          this.start();
-        }
-      }
-    },
-
-    start() {
-      this.settings.enabled = true;
-      SettingsManager.updateModuleSettings(this.id, { enabled: true });
-    },
-
-    stop() {
-      this.settings.enabled = false;
-      SettingsManager.updateModuleSettings(this.id, { enabled: false });
-    },
-  };
-
-  /**
-   * Object representing the "Sell All Buildings" feature.
-   * @typedef {Object} sellAll
-   * @property {string} id - The ID of the feature.
-   * @property {string} name - The name of the feature.
-   * @property {Object} settings - The settings for the feature.
-   * @property {boolean} settings.collapsed - Indicates whether the settings are collapsed or not.
-   * @property {boolean} settings.enabled - Indicates whether the feature is enabled or disabled.
-   * @property {number} settings.delay - The delay in milliseconds between each execution of the feature.
-   * @property {boolean} settings.ascendAfterSelling - Indicates whether to automatically ascend after selling all buildings.
-   * @property {Object} settingsUI - The user interface settings for the feature.
-   * @property {Object} settingsUI.enabled - The toggle settings for enabling or disabling the feature.
-   * @property {string} settingsUI.enabled.type - The type of the toggle setting.
-   * @property {string} settingsUI.enabled.label - The label for the toggle setting.
-   * @property {string} settingsUI.enabled.description - The description for the toggle setting.
-   * @property {Object} settingsUI.enabled.actions - The actions to perform when the toggle setting is changed.
-   * @property {Function} settingsUI.enabled.actions.start - The function to start the feature.
-   * @property {Function} settingsUI.enabled.actions.stop - The function to stop the feature.
-   * @property {Object} settingsUI.ascendAfterSelling - The toggle settings for ascending after selling all buildings.
-   * @property {string} settingsUI.ascendAfterSelling.type - The type of the toggle setting.
-   * @property {string} settingsUI.ascendAfterSelling.label - The label for the toggle setting.
-   * @property {string} settingsUI.ascendAfterSelling.description - The description for the toggle setting.
-   * @property {number} nextProc - The timestamp of the next execution of the feature.
-   * @property {boolean} sellAllButtonCreated - Indicates whether the sell all button has been created.
-   * @property {Function} logic - The logic function that determines when to create or remove the sell all button.
-   * @property {Function} createSellAllButton - Creates the sell all button.
-   * @property {Function} removeSellAllButton - Removes the sell all button.
-   * @property {Function} sellAllBuildings - Sells all buildings and optionally ascends.
-   * @property {Function} init - Initializes the feature and loads the settings.
-   * @property {Function} start - Starts the feature.
-   * @property {Function} stop - Stops the feature.
-   */
-  const sellAll = {
-    id: "sellAll",
-    name: "Sell All Buildings",
-    settings: {
-      collapsed: false,
-      enabled: false,
-      delay: 1000,
-      ascendAfterSelling: false,
-    },
-    settingsUI: {
-      enabled: {
-        type: "toggle",
-        label: "Sell All Buildings",
-        description:
-          'Adds a "Sell All" button to the store that sells all buildings, with option to Ascend after selling.',
-        actions: {
-          start: () => sellAll.start(),
-          stop: () => sellAll.stop(),
+  class SellAll extends Module {
+    constructor() {
+      super(
+        "sellAll",
+        "Sell All Buildings",
+        {
+          enabled: false,
+          delay: 1000,
+          collapsed: false,
+          ascendAfterSelling: false,
         },
-      },
-      ascendAfterSelling: {
-        type: "toggle",
-        label: "Ascend After Selling",
-        description:
-          "Automatically ascends after selling all buildings if enabled.",
-      },
-    },
-    nextProc: 0,
-    sellAllButtonCreated: false, // Track if the button has been created to minimize DOM access
+        {
+          enabled: {
+            type: "toggle",
+            label: "Sell All Buildings",
+            description: 'Adds a "Sell All" button to the store that sells all buildings, with option to Ascend after selling.',
+            actions: {
+              start: () => this.start(),
+              stop: () => this.stop(),
+            },
+          },
+          ascendAfterSelling: {
+            type: "toggle",
+            label: "Ascend After Selling",
+            description: "Automatically ascends after selling all buildings if enabled.",
+          },
+        }
+      );
+    }
+
     logic() {
       // Exit early if disabled, during ascend or ascend timer is active
       if (!this.settings.enabled || Game.OnAscend || Game.AscendTimer > 0) {
@@ -1271,7 +953,8 @@
       }
       // Update the next process time
       this.nextProc = now + this.settings.delay;
-    },
+    }
+
     createSellAllButton() {
       let storeBulkMax = document.getElementById("storeBulkMax");
       if (storeBulkMax && !this.sellAllButtonCreated) {
@@ -1291,16 +974,18 @@
         );
         this.sellAllButtonCreated = true; // Update state to reflect the button's creation
       }
-    },
+    }
+
     removeSellAllButton() {
       let sellAllButton = document.getElementById("sellAllBuildingsButton");
       if (sellAllButton) {
         sellAllButton.remove();
         this.sellAllButtonCreated = false; // Update state to reflect the button's removal
       }
-    },
+    }
+
     sellAllBuildings() {
-      if (autoBuy.settings.enabled) {
+      if (this.settings.enabled) {
         Game.storeBulkButton(1);
       }
 
@@ -1315,165 +1000,93 @@
         Game.Ascend(1);
         Game.ClosePrompt();
       }
-    },
-    init() {
-      this.removeSellAllButton(); // Ensure the button is removed when the feature is initialized for reset hard refreshes
-      var loadedSettings = SettingsManager.loadModuleSettings(this.id);
-      if (loadedSettings) {
-        this.settings = { ...this.settings, ...loadedSettings };
-        if (this.settings.enabled) {
-          this.start();
+    }
+  }
+
+  class AutoBuy extends Module {
+    constructor() {
+      super(
+        "autoBuy",
+        "Auto-Buy",
+        {
+          enabled: false,
+          delay: 1000,
+          collapsed: false,
+          protect: false,
+          upgradebyidVault: [227],
+          upgradeVault: [],
+          techVault: [],
+          buildingVault: [],
+          popupWindowMessage: false,
+        },
+        {
+          enabled: {
+            type: "toggle",
+            label: "Auto-Buy",
+            description: "Automatically buys the best building or upgrade based on current game state.",
+            actions: {
+              start: () => this.start(),
+              stop: () => this.stop(),
+            },
+          },
+          popupWindowMessage: {
+            type: "toggle",
+            label: "Popup Window",
+            description: "Displays Auto-Buy status message in a draggable popup window under big cookie.",
+            actions: {
+              stop: () => this.closePopupWindow(),
+            },
+          },
+          upgradeVault: {
+            type: "complex",
+            action: (parent) => {
+              UIManager.createDynamicSettingsUI(
+                this,
+                "Upgrade Vault",
+                'Select which upgrades to exclude from Auto-Buy. Useful if you do not own "Inspired Checklist".',
+                "upgradeVault",
+                this.settings.upgradebyidVault.map((id) => Game.UpgradesById[id]).filter(Boolean),
+                parent
+              );
+            },
+          },
+          techVault: {
+            type: "complex",
+            action: (parent) =>
+              UIManager.createDynamicSettingsUI(
+                this,
+                "Tech Vault",
+                "Select which tech upgrades to exclude from Auto-Buy.",
+                "techVault",
+                Game.UpgradesByPool["tech"],
+                parent
+              ),
+          },
+          buildingVault: {
+            type: "complex",
+            action: (parent) =>
+              UIManager.createDynamicSettingsUI(
+                this,
+                "Building Vault",
+                "Select which buildings to exclude from Auto-Buy.",
+                "buildingVault",
+                Game.ObjectsById,
+                parent
+              ),
+          },
+          protect: {
+            type: "toggle",
+            label: "Protect",
+            description: "Protects against going under Lucky and Frenzy requirements.",
+          },
         }
-      }
-    },
+      );
+      this.calculator = new Calculator();
+      this.target = { name: undefined, price: -1 };
+      this.total = -1;
+      this.statusMessage = "";
+    }
 
-    start() {
-      this.settings.enabled = true;
-      SettingsManager.updateModuleSettings(this.id, { enabled: true });
-      this.createSellAllButton();
-    },
-
-    stop() {
-      this.settings.enabled = false;
-      SettingsManager.updateModuleSettings(this.id, { enabled: false });
-      this.removeSellAllButton();
-    },
-  };
-
-  /**
-   * The `autoBuy` object represents an auto-buy module that automatically buys the best building or upgrade based on the current game state.
-   * @type {Object}
-   * @property {string} id - Unique identifier for the autoBuy module.
-   * @property {string} name - Name of the autoBuy module.
-   * @property {Object} settings - Settings for the autoBuy module.
-   * @property {boolean} settings.collapsed - Indicates whether the settings are collapsed or not.
-   * @property {boolean} settings.enabled - Indicates whether the autoBuy module is enabled or not.
-   * @property {number} settings.delay - Delay between purchases.
-   * @property {boolean} settings.protect - Indicates whether the autoBuy module should protect against going under Lucky and Frenzy requirements.
-   * @property {number[]} settings.upgradebyidVault - Stores IDs of upgrades to add to the upgradeVault menu.
-   * @property {number[]} settings.upgradeVault - Stores IDs of upgrades.
-   * @property {number[]} settings.techVault - Stores IDs of tech upgrades.
-   * @property {number[]} settings.buildingVault - Stores IDs of buildings.
-   * @property {Object} settingsUI - UI settings for the autoBuy module.
-   * @property {Object} settingsUI.enabled - UI settings for the enabled toggle.
-   * @property {string} settingsUI.enabled.type - Type of UI element (toggle).
-   * @property {string} settingsUI.enabled.label - Label for the toggle.
-   * @property {string} settingsUI.enabled.description - Description for the toggle.
-   * @property {Object} settingsUI.enabled.actions - Custom actions for the toggle.
-   * @property {Function} settingsUI.enabled.actions.start - Function to start the autoBuy module.
-   * @property {Function} settingsUI.enabled.actions.stop - Function to stop the autoBuy module.
-   * @property {Object} settingsUI.upgradeVault - UI settings for the upgradeVault complex element.
-   * @property {string} settingsUI.upgradeVault.type - Type of UI element (complex).
-   * @property {Function} settingsUI.upgradeVault.action - Action to be performed when the UI element is interacted with.
-   * @property {Object} settingsUI.techVault - UI settings for the techVault complex element.
-   * @property {string} settingsUI.techVault.type - Type of UI element (complex).
-   * @property {Function} settingsUI.techVault.action - Action to be performed when the UI element is interacted with.
-   * @property {Object} settingsUI.buildingVault - UI settings for the buildingVault complex element.
-   * @property {string} settingsUI.buildingVault.type - Type of UI element (complex).
-   * @property {Function} settingsUI.buildingVault.action - Action to be performed when the UI element is interacted with.
-   * @property {Object} settingsUI.protect - UI settings for the protect toggle.
-   * @property {string} settingsUI.protect.type - Type of UI element (toggle).
-   * @property {string} settingsUI.protect.label - Label for the toggle.
-   * @property {string} settingsUI.protect.description - Description for the toggle.
-   */
-  const autoBuy = {
-    id: "autoBuy", // Unique identifier
-    name: "Auto-Buy", // Name of the autoBuy module
-    settings: {
-      collapsed: false,
-      enabled: false,
-      delay: 50, // delay between purchases
-      protect: false, // Indicates whether
-      upgradebyidVault: [227], // Stores IDs of upgrades to add to upgradeVault menu.
-      upgradeVault: [], // Stores IDs of upgrades
-      techVault: [], // Stores IDs of tech upgrades
-      buildingVault: [], // Stores IDs of buildings
-      popupWindowMessage: false,
-    },
-    settingsUI: {
-      enabled: {
-        type: "toggle",
-        label: "Auto-Buy",
-        description:
-          "Automatically buys the best building or upgrade based on current game state.",
-        actions: {
-          // Define custom actions for this toggle
-          start: () => autoBuy.start(),
-          stop: () => autoBuy.stop(),
-        },
-      },
-      popupWindowMessage: {
-        type: "toggle",
-        label: "Popup Window",
-        description:
-          "Displays Auto-Buy status message in a draggable popup window under big cookie.",
-        actions: {
-          // Define custom actions for this toggle
-          stop: () => autoBuy.closePopupWindow(),
-        },
-      },
-      upgradeVault: {
-        type: "complex",
-        action: (parent) => {
-          UIManager.createDynamicSettingsUI(
-            autoBuy,
-            "Upgrade Vault",
-            'Select which upgrades to exclude from Auto-Buy. Useful if you do not own "Inspired Checklist".',
-            "upgradeVault",
-            autoBuy.settings.upgradebyidVault
-              .map((id) => Game.UpgradesById[id])
-              .filter(Boolean), // Filter for static upgrades defined in upgradebyidVault.
-            parent
-          );
-        },
-      },
-      techVault: {
-        type: "complex",
-        action: (parent) =>
-          UIManager.createDynamicSettingsUI(
-            autoBuy,
-            "Tech Vault",
-            "Select which tech upgrades to exclude from Auto-Buy.",
-            "techVault",
-            Game.UpgradesByPool["tech"],
-            parent
-          ),
-      },
-      buildingVault: {
-        type: "complex",
-        action: (parent) =>
-          UIManager.createDynamicSettingsUI(
-            autoBuy,
-            "Building Vault",
-            "Select which buildings to exclude from Auto-Buy.",
-            "buildingVault",
-            Game.ObjectsById,
-            parent
-          ),
-      },
-      protect: {
-        type: "toggle",
-        label: "Protect",
-        description:
-          "Protects against going under Lucky and Frenzy requirements.",
-      },
-      // Include UI elements for other settings as needed
-    },
-    calculator: new Calculator(), // Calculator class for calculating the best item to buy based on the current game state
-    target: { name: undefined, price: -1 }, // Target object for the autoBuy module
-    total: -1, // Total value for the autoBuy module
-    nextProc: 0, // Next process for the autoBuy module
-    statusMessage: "", // Status message for the autoBuy module
-    /**
-     * Performs the logic for determining what to buy next based on the current settings and game state.
-     * If the auto-clicker is enabled, it calculates the best item to buy and waits for the appropriate time to make the purchase.
-     * If the auto-clicker is disabled, it checks if there are any buildings available in the building vault and buys the cheapest one if possible.
-     * If there are no buildings available, it skips the logic and returns.
-     * If the wait time is too long or negative, it skips the logic and returns.
-     * If the wait time is positive, it waits for the specified time and then buys the item.
-     * If the wait time is less than -1, it checks if the conditions are met for buying the item and then buys it.
-     * @returns {void}
-     */
     logic() {
       // Exit early if disabled, during ascend or ascend timer is active
       if (!this.settings.enabled || Game.OnAscend || Game.AscendTimer > 0) {
@@ -1491,7 +1104,9 @@
 
       // Calculate the best item to buy based on the current game state
       var info = this.calculator.find_best(
-        autoClicker.settings.enabled ? 1000 / autoClicker.settings.delay : 0
+        mod.modules.find(module => module.id === "autoClicker")?.settings.enabled
+          ? 1000 / mod.modules.find(module => module.id === "autoClicker")?.settings.delay
+          : 0
       );
 
       // attempts to protect you from going under Lucky and Frenzy requirements.
@@ -1591,56 +1206,12 @@
       var nextProcWait = wait * 1000 / 2; // convert seconds to milliseconds - divide by 2 to cut the wait time in half to account for wait variation.
       this.nextProc = (now + this.settings.delay) + (nextProcWait > 0 ? nextProcWait : 0);
       // console.log("Now: ", now, "Setting delay: ", this.settings.delay, "Wait: ", wait, "NPW: ", nextProcWait, "nextProc: ", this.nextProc);
-    },
-    /**
-     * Starts the module.
-     */
-    start() {
-      this.settings.enabled = true;
-      // Update settings in SettingsManager
-      SettingsManager.updateModuleSettings(this.id, { enabled: true });
-    },
-    /**
-     * Stops the module.
-     */
-    stop() {
-      this.settings.enabled = false;
-      // Update settings in SettingsManager
-      SettingsManager.updateModuleSettings(this.id, { enabled: false });
-      UIManager.removePopup();
-    },
+    }
+
     closePopupWindow() {
       UIManager.removePopup();
-    },
-    /**
-     * Initializes the module.
-     * Loads settings from SettingsManager and starts the module if enabled.
-     */
-    init() {
-      this.closePopupWindow();
-      var loadedSettings = SettingsManager.loadModuleSettings(this.id);
-      if (loadedSettings) {
-        this.settings = { ...this.settings, ...loadedSettings };
-        if (this.settings.enabled) {
-          this.start();
-        }
-      }
-      this.nextProc = 0;
-      if (Game.mods["CookieMonster"]) {
-        // Increase the delay to 1000ms if Cookie Monster is detected due to compatibility issues with the autoBuy module.
-        // Cookie Monster utilizes Game.CalculateGains() to calculate the best item to buy - so both co-existing causes severe performance issues.
-        this.settings.delay = 1000;
-        SettingsManager.updateModuleSettings(this.id, { delay: 1000 });
-      } else {
-        this.settings.delay = 50;
-        SettingsManager.updateModuleSettings(this.id, { delay: 50 });
-      }
-    },
-    /**
-     * Converts a given number of seconds into a human-readable format.
-     * @param {number} seconds - The number of seconds to convert.
-     * @returns {string} The formatted time string.
-     */
+    }
+
     beautifySeconds(seconds) {
       var days = Math.floor(seconds / 86400); // Calculate days
       seconds %= 86400; // Update seconds
@@ -1668,22 +1239,11 @@
       }
 
       return parts.join(", ");
-    },
-    // Additional methods as needed for autoBuy functionality
-  };
+    }
+  }
 
-  /**
-   * The UIManager object handles the creation and management of the options menu for the game.
-   * It provides methods for adding module settings to the menu, creating toggle buttons, sliders, and dynamic settings UI.
-   *
-   * @namespace
-   */
   var UIManager = {
-    /**
-     * Creates the options menu for the game.
-     * Overrides the original `Game.UpdateMenu` method to add custom settings for each module.
-     */
-    createOptionsMenu() {
+    createOptionsMenu(modules) {
       const originalUpdateMenu = Game.UpdateMenu;
       Game.UpdateMenu = () => {
         originalUpdateMenu.call(Game);
@@ -1694,27 +1254,12 @@
             `${modID}SettingsBlock`
           );
           if (existingBlock) existingBlock.remove();
-
-          // Dynamically add settings for each module, including autoClicker and autoBuy
-          this.addModuleSettingsToMenu([
-            autoBuy,
-            autoClicker,
-            shimmerClicker,
-            fortuneClicker,
-            wrinklersPopper,
-            ascendLuck,
-            autopetKrumblor,
-            sellAll,
-          ]);
+  
+          // Dynamically add settings for each module
+          this.addModuleSettingsToMenu(modules);
         }
       };
     },
-    /**
-     * Adds module settings to the menu.
-     *
-     * @param {Array} modules - An array of modules.
-     * @returns {void}
-     */
     addModuleSettingsToMenu(modules) {
       const menu = document.getElementById("menu");
       const sections = menu.querySelector(".section");
@@ -1788,15 +1333,6 @@
 
       menu.insertBefore(block, sections.nextSibling.nextSibling.nextSibling);
     },
-    /**
-     * Creates a UI element based on the provided setting type.
-     *
-     * @param {Object} module - The module object.
-     * @param {string} key - The key of the setting.
-     * @param {Object} setting - The setting object.
-     * @param {HTMLElement} container - The container element to append the UI element to.
-     * @returns {HTMLElement|null} The created UI element or null if the setting type is unsupported.
-     */
     createUIElement(module, key, setting, container) {
       switch (setting.type) {
         case "toggle":
@@ -1830,18 +1366,6 @@
           return null; // Return null or appropriate fallback for unsupported types
       }
     },
-
-    /**
-     * Creates a toggle button element with the specified properties and attaches it to the parent element.
-     *
-     * @param {object} module - The module object.
-     * @param {string} settingKey - The key of the setting in the module's settings object.
-     * @param {string} labelText - The text to display on the button.
-     * @param {string} descriptionText - The description text to display next to the button (optional).
-     * @param {HTMLElement} parent - The parent element to attach the button to.
-     * @param {object} actions - The actions to perform when the button is clicked (optional).
-     * @returns {HTMLElement} - The created toggle button element.
-     */
     createToggleButton(
       module,
       settingKey,
@@ -1898,16 +1422,6 @@
       parent.appendChild(listing);
       return listing;
     },
-
-    /**
-     * Creates a slider element with labels and functionality.
-     *
-     * @param {Object} module - The module object.
-     * @param {string} settingKey - The key of the setting.
-     * @param {Object} setting - The setting object.
-     * @param {HTMLElement} parent - The parent element to append the slider to.
-     * @returns {HTMLElement} The constructed sliderBox element.
-     */
     createSlider(module, settingKey, setting, parent) {
       // Create the wrapper for the slider
       const wrapper = document.createElement("div");
@@ -1974,16 +1488,6 @@
 
       return wrapper; // Return the wrapper for reference if needed
     },
-    /**
-     * Creates a dynamic settings UI for a module.
-     *
-     * @param {Object} module - The module object.
-     * @param {string} title - The title of the settings UI.
-     * @param {string} description - The description of the settings UI.
-     * @param {string} vaultArrayName - The name of the vault array used to access and modify the specific setting in module.settings.
-     * @param {Array} objects - An array of objects used to create UI components.
-     * @param {HTMLElement} parent - The parent element where the UI components will be appended.
-     */
     createDynamicSettingsUI(
       module,
       title,
@@ -1992,17 +1496,6 @@
       objects,
       parent
     ) {
-      // First, clear existing UI components for the given setting to avoid duplicates. Not required since Game.UpdateMenu refreshes the entire menu.
-      /*
-      const containerId = `${module.id}-${vaultArrayName.replace(
-        /\s+/g,
-        "-"
-      )}-UI`;
-      let container = document.getElementById(containerId);
-      if (container) {
-        container.remove(); // Remove the existing container to avoid duplicate UI components
-      } */
-
       container = document.createElement("div");
       container.setAttribute("data-module-name", module.id);
       container.id = `${module.id}-${vaultArrayName.replace(/\s+/g, "-")}-UI`; // Use the corrected ID based on the original vaultArrayName
@@ -2048,13 +1541,6 @@
 
       parent.appendChild(container);
     },
-
-    /**
-     * Updates the status message for a module.
-     *
-     * @param {string} moduleId - The ID of the module.
-     * @param {string} message - The new status message to be set.
-     */
     updateModuleStatusMessage(moduleId, message) {
       // Check if the module has a custom popup message setting
       var settings = SettingsManager.loadModuleSettings(moduleId);
@@ -2092,7 +1578,6 @@
         }
       }
     },
-
     createDraggablePopup() {
       if (!document.getElementById(`${modID}Popup`)) {
         var modPopup = document.createElement("div");
@@ -2147,14 +1632,12 @@
         this.addDragFunctionality(modPopup);
       }
     },
-
     removePopup() {
       var popup = document.getElementById(`${modID}Popup`);
       if (popup) {
         popup.parentNode.removeChild(popup);
       }
     },
-
     updatePopupContent(message) {
       var modPopup = document.getElementById(`${modID}Popup`);
       if (modPopup) {
@@ -2165,7 +1648,6 @@
         this.updatePopupContent(message); // Update content after creation
       }
     },
-
     addDragFunctionality(modPopup) {
       var pos1 = 0,
         pos2 = 0,
@@ -2196,282 +1678,97 @@
         document.onmousemove = null;
       }
     },
-
-    // Additional UI creation methods as needed
   };
 
-  /**
-   * Manages the settings for different modules.
-   * @namespace SettingsManager
-   */
   var SettingsManager = {
-    // Object to store settings for each module
     settings: {},
     defaultSettings: {},
-
-    /**
-     * Loads the settings for a specific module.
-     * @memberof SettingsManager
-     * @param {string} moduleId - The name of the module.
-     * @returns {Object} The settings for the requested module.
-     */
     loadModuleSettings(moduleId) {
       return this.settings[moduleId];
     },
-
-    /**
-     * Updates the settings for a specific module.
-     * @memberof SettingsManager
-     * @param {string} moduleId - The name of the module.
-     * @param {Object} newSettings - The new settings to be updated.
-     */
     updateModuleSettings(moduleId, newSettings) {
-      this.settings[moduleId] = {
-        ...this.settings[moduleId],
-        ...newSettings,
-      };
+      // console.log("Updating settings for module:", moduleId, newSettings);
+      this.settings[moduleId] = { ...this.settings[moduleId], ...newSettings };
     },
-
-    /**
-     * Resets the settings to their default values.
-     * @memberof SettingsManager
-     */
     resetToDefault() {
       this.settings = JSON.parse(JSON.stringify(this.defaultSettings));
     },
-
-    /**
-     * Retrieves the default settings for a given module ID.
-     * @memberof SettingsManager
-     * @param {string} moduleId - The ID of the module.
-     * @returns {object} - The default settings for the module.
-     */
     getDefaultSettings(moduleId) {
       return this.defaultSettings[moduleId];
-    },
-
-    /**
-     * Initializes default settings for all modules provided.
-     * @memberof SettingsManager
-     * @param {Array} modules - An array of modules.
-     */
-    init(modules) {
-      modules.forEach((module) => {
-        this.settings[module.id] = module.settings;
-        this.defaultSettings[module.id] = { ...module.settings };
+      },
+      init(modules) {
+      modules.forEach(module => {
+      this.settings[module.id] = module.settings;
+      this.defaultSettings[module.id] = { ...module.settings };
       });
-    },
+      },
   };
 
-  /**
-   * The main controller object responsible for initializing the mod framework and its modules.
-   * @namespace MainController
-   */
-  const MainController = {
-    modules: [], // Array to store modules
+  const mod = new Mod();
 
-    // Method to add modules
-    registerModule(module) {
-      this.modules.push(module);
+
+  mod.registerModule(new AutoClicker());
+  mod.registerModule(new AutoBuy());
+  mod.registerModule(new ShimmerClicker());
+  mod.registerModule(new FortuneClicker());
+  mod.registerModule(new WrinklersPopper());
+  mod.registerModule(new AscendLuck());
+  mod.registerModule(new AutoPetKrumblor());
+  mod.registerModule(new SellAll());
+
+
+  const modHooks = {
+    // Logic to be called every logic tick
+    // logic: () => {},
+    // Called every draw tick
+    // draw: () => {},
+    // Called whenever the player resets. The parameter is true if this is a hard reset, false if it's an ascension.
+    reset: (hard) => {
+      if (hard) {
+        // Reset settings to default on hard reset
+        SettingsManager.resetToDefault();
+  
+        // Reinitialize each module to apply default settings
+        mod.modules.forEach((module) => module.init());
+      }
+
+
     },
-
-    // Main update loop
-    update() {
-      const now = Date.now();
-      this.modules.forEach((module) => {
-        // Ensure module has a logic method and is time for it to execute
-        if (!module.settings.enabled) return; // Skip if module is disabled
-        if (module.logic && (!module.nextProc || now >= module.nextProc)) {
-          // console.log(`Executing logic for module: ${module.id} - ${module.nextProc} - ${now}`);
-          module.logic(); // Execute module logic
-        }
-      });
-    },
-    /**
-     * Initializes the mod framework and its modules.
-     */
-    init() {
-      // Initialize SettingsManager with default settings from modules
-      SettingsManager.init([
-        autoBuy,
-        autoClicker,
-        shimmerClicker,
-        fortuneClicker,
-        wrinklersPopper,
-        ascendLuck,
-        autopetKrumblor,
-        sellAll,
-      ]);
-      autoBuy.init(); // autoBuy initialization with settings
-      autoClicker.init(); // autoClicker initialization with settings
-      shimmerClicker.init(); // shimmerClicker initialization with settings
-      fortuneClicker.init(); // fortuneClicker initialization with settings
-      wrinklersPopper.init(); // wrinklersPopper initialization with settings
-      ascendLuck.init(); // ascendLuck initialization with settings
-      autopetKrumblor.init(); // autopetKrumblor initialization with settings
-      sellAll.init(); // sellAll initialization with settings
-      // Additional module initializations...
-
-      UIManager.createOptionsMenu(); // Create or extend the options menu
-
-      this.registerModule(autoClicker); // Register autoClicker module
-      this.registerModule(autoBuy); // Register autoBuy module
-      this.registerModule(shimmerClicker); // Register shimmerClicker module
-      this.registerModule(fortuneClicker); // Register fortuneClicker module
-      this.registerModule(wrinklersPopper); // Register wrinklersPopper module
-      this.registerModule(ascendLuck); // Register ascendLuck module
-      this.registerModule(autopetKrumblor); // Register autopetKrumblor module
-      this.registerModule(sellAll); // Register sellAll module
-      // Register other modules as needed
-
-      // Start the update loop, example with setInterval
-      setInterval(() => this.update(), 1000 / Game.fps); // Adjust interval as appropriate
-
-      /**
-       * Object representing the mod hooks.
-       * @typedef {Object} ModHooks
-       * @property {Function} logic - Logic to be called every logic tick.
-       * @property {Function} draw - Called every draw tick.
-       * @property {Function} reset - Called whenever the player resets. The parameter is true if this is a hard reset, false if it's an ascension.
-       * @property {Function} reincarnate - Called when the player reincarnates after an ascension.
-       * @property {Function} ticker - Called when determining news ticker text, should return an array of possible choices to add.
-       * @property {Function} cps - Called when determining the CpS, parameter is the current CpS, should return the modified CpS.
-       * @property {Function} cookiesPerClick - Called when determining the cookies per click, parameter is the current value, should return the modified value.
-       * @property {Function} click - Called when the big cookie is clicked.
-       * @property {Function} create - Called after the game declares all buildings, buffs, upgrades, and achievements. Use this to declare your own.
-       * @property {Function} check - Called for periodic checks (e.g., for upgrade/achievement unlock conditions). Called every few seconds when we check for upgrade/achievement unlock conditions.
-       */
-      const modHooks = {
-        // Logic to be called every logic tick
-        // logic: () => {},
-        // Called every draw tick
-        // draw: () => {},
-        // Called whenever the player resets. The parameter is true if this is a hard reset, false if it's an ascension.
-        reset: (hard) => {
-          if (hard) {
-            // Here we reinitialize the modules with their default settings
-            // Reset settings to default on hard reset
-            SettingsManager.resetToDefault();
-
-            // Reinitialize each module to apply default settings
-            autoBuy.init();
-            autoClicker.init();
-            shimmerClicker.init();
-            fortuneClicker.init();
-            wrinklersPopper.init();
-            ascendLuck.init();
-            autopetKrumblor.init();
-            sellAll.init();
-          }
-        },
-        // Called when the player reincarnates after an ascension
-        // reincarnate: () => {},
-        // Called when determining news ticker text, should return an array of possible choices to add
-        // ticker: () => {},
-        // Called when determining the CpS, parameter is the current CpS, should return the modified CpS
-        // cps: () => {},
-        // Called when determining the cookies per click, parameter is the current value, should return the modified value
-        // cookiesPerClick: () => {},
-        // Called when the big cookie is clicked
-        // click: () => {},
-        // Called after the game declares all buildings, buffs, upgrades, and achievements. use this to declare your own - note that while the game distinguishes between vanilla and non-vanilla content, saving/loading functionality for custom content (including stuff like active buffs or permanent upgrade slotting) is not explicitly implemented and may be unpredictable and broken
-        // create: () => {},
-        // Called for periodic checks (e.g., for upgrade/achievement unlock conditions) called every few seconds when we check for upgrade/achiev unlock conditions, you can also use this for other checks that you don't need happening every logic frame
-        // check: () => {},
-      };
-
-      // Dynamically register all mod hooks that have actual implementations
-      Object.entries(modHooks).forEach(([hookName, hookFunction]) => {
-        // Convert function to string and remove spaces to check if it's empty
-        const functionAsString = hookFunction.toString().replace(/\s+/g, "");
-        // Check if the function body is not empty, indicating implementation exists
-        if (
-          !functionAsString.includes("{/*") &&
-          !functionAsString.includes("{}")
-        ) {
-          Game.registerHook(hookName, hookFunction);
-        }
-      });
-
+    // Called when the player reincarnates after an ascension
+    // reincarnate: () => {},
+    // Called when determining news ticker text, should return an array of possible choices to add
+    // ticker: () => [],
+    // Called when determining the CpS, parameter is the current CpS, should return the modified CpS
+    // cps: (currentCps) => currentCps,
+    // Called when determining the cookies per click, parameter is the current value, should return the modified value
+    // cookiesPerClick: (currentValue) => currentValue,
+    // Called when the big cookie is clicked
+    // click: () => {},
+    // Called after the game declares all buildings, buffs, upgrades, and achievements. use this to declare your own - note that while the game distinguishes between vanilla and non-vanilla content, saving/loading functionality for custom content (including stuff like active buffs or permanent upgrade slotting) is not explicitly implemented and may be unpredictable and broken
+    // create: () => {},
+    // Called for periodic checks (e.g., for upgrade/achievement unlock conditions) called every few seconds when we check for upgrade/achiev unlock conditions, you can also use this for other checks that you don't need happening every logic frame
+    // check: () => {},
+  };
+  
+  Game.registerMod(modID, {
+    init: () => {
+      SettingsManager.init(mod.modules);
+      mod.init();
       Game.Notify(
-        `${modName}`,
-        `${modTranslate(
-          "notifyDescriptionText"
-        )} <b><a href="#" onclick=Game.ShowMenu("prefs");>${modTranslate(
-          "notifyDescriptionLink"
-        )}</a></b> ${modTranslate("notifyDescriptionMenu")}`,
+        modName,
+        `${modTranslate("notifyDescriptionText")} <b><a href="#" onclick=Game.ShowMenu("prefs");>${modTranslate("notifyDescriptionLink")}</a></b> ${modTranslate("notifyDescriptionMenu")}`,
         [30, 6],
         20
       );
-    },
-    /**
-     * Converts current module settings into a save string.
-     * @returns {string} The save string representing the module settings.
-     * @memberof MainController
-     */
-    save() {
-      // Convert current module settings into a save string
-      return JSON.stringify(SettingsManager.settings);
-    },
-    /**
-     * Loads the saved settings and applies them to the corresponding modules.
-     * @param {string} saveString - The string representation of the saved settings.
-     * @memberof MainController
-     */
-    load(saveString) {
-      const savedSettings = JSON.parse(saveString);
-
-      // Iterate over each registered module
-      Object.keys(savedSettings).forEach((moduleId) => {
-        if (SettingsManager.settings.hasOwnProperty(moduleId)) {
-          const moduleSettings = SettingsManager.getDefaultSettings(moduleId);
-          const filteredSettings = {};
-
-          // Only apply saved settings that exist in the module's current default settings
-          Object.keys(savedSettings[moduleId]).forEach((settingKey) => {
-            if (moduleSettings.hasOwnProperty(settingKey)) {
-              filteredSettings[settingKey] =
-                savedSettings[moduleId][settingKey];
-            }
-          });
-
-          // Update the module's settings with the filtered settings
-          SettingsManager.updateModuleSettings(moduleId, filteredSettings);
-
-          /**
-           * Registry of modules.
-           *
-           * @type {Object}
-           */
-          const moduleRegistry = {
-            autoClicker: autoClicker,
-            autoBuy: autoBuy,
-            shimmerClicker: shimmerClicker,
-            fortuneClicker: fortuneClicker,
-            wrinklersPopper: wrinklersPopper,
-            ascendLuck: ascendLuck,
-            autopetKrumblor: autopetKrumblor,
-            sellAll: sellAll,
-            // Add other modules here
-          };
-
-          /**
-           * Represents a module in the module registry.
-           * @type {Object}
-           */
-          const module = moduleRegistry[moduleId];
-          if (module && typeof module.init === "function") {
-            module.init();
-          }
+  
+      // Register mod hooks
+      Object.keys(modHooks).forEach((hook) => {
+        if (typeof modHooks[hook] === "function") {
+          Game.registerHook(hook, modHooks[hook]);
         }
       });
     },
-  };
-
-  // Register the mod with Cookie Clicker's modding API
-  Game.registerMod(modID, {
-    init: MainController.init.bind(MainController),
-    save: MainController.save.bind(MainController),
-    load: MainController.load.bind(MainController),
+    save: () => mod.save(),
+    load: (saveString) => mod.load(saveString),
   });
 })();
