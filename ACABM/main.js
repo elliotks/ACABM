@@ -934,6 +934,7 @@
           },
         }
       );
+      this.sellAllButtonCreated = false;
     }
 
     logic() {
@@ -953,6 +954,19 @@
       }
       // Update the next process time
       this.nextProc = now + this.settings.delay;
+    }
+    start() {
+      super.start(); // Call the parent class's init() method first
+
+      // Custom start code for sell all button
+      this.createSellAllButton();
+    }
+
+    stop() {
+      super.stop(); // Call the parent class's init() method first
+
+      // Custom stop code for sell all button
+      this.removeSellAllButton();
     }
 
     createSellAllButton() {
