@@ -74,7 +74,7 @@
       // Russian
     },
   };
-  
+
   function modTranslate(key, ...placeholders) {
     const lang = locId || "EN"; // Default to 'EN' if locId is not set
     let translation = modTranslations[lang][key] || modTranslations["EN"][key] || key;
@@ -90,17 +90,17 @@
       this.settings = {};
       this.defaultSettings = {};
     }
-  
+
     registerModule(module) {
       this.modules.push(module);
     }
-  
+
     init() {
       this.modules.forEach(module => module.init());
       UIManager.createOptionsMenu(this.modules);
       setInterval(() => this.update(), 1000 / Game.fps);
     }
-  
+
     update() {
       const now = Date.now();
       this.modules.forEach(module => {
@@ -110,7 +110,7 @@
         }
       });
     }
-  
+
     save() {
       const saveData = {};
       this.modules.forEach(module => {
@@ -118,7 +118,7 @@
       });
       return JSON.stringify(saveData);
     }
-  
+
     load(saveString) {
       const savedSettings = JSON.parse(saveString);
       // console.log("Loading saved settings:", savedSettings);
@@ -131,7 +131,7 @@
       });
     }
   }
-  
+
   class Module {
     constructor(id, name, settings, settingsUI) {
       this.id = id;
@@ -140,14 +140,14 @@
       this.settingsUI = settingsUI;
       this.nextProc = 0;
     }
-  
+
     init() {
       const loadedSettings = SettingsManager.loadModuleSettings(this.id);
       if (loadedSettings) {
         // Merge the loaded settings with the default settings
         this.settings = { ...this.settings, ...loadedSettings };
         // console.log(`Initialized module ${this.id} with settings:`, this.settings);
-  
+
         // Start the module if it's enabled
         if (this.settings.enabled) {
           this.start();
@@ -157,13 +157,13 @@
       }
       mod.defaultSettings[this.id] = { ...this.settings };
     }
-  
+
     start() {
       this.settings.enabled = true;
       SettingsManager.updateModuleSettings(this.id, { enabled: true });
       // console.log(`Started module ${this.id}`);
     }
-  
+
     stop() {
       this.settings.enabled = false;
       SettingsManager.updateModuleSettings(this.id, { enabled: false });
@@ -231,19 +231,19 @@
         },
       ];
     }
-  
+
     cps_acc(base_cps, new_cps, price) {
       return (base_cps * base_cps * (new_cps - base_cps)) / (price * price);
     }
-  
+
     ecps() {
       return Game.cookiesPs * (1 - Game.cpsSucked);
     }
-  
+
     calc_bonus(item, list_generator, mouse_rate) {
       // Temporarily override Game.Win
       var funcGW = Game.Win;
-      Game.Win = function () {}; // Temporarily replace with no-op function
+      Game.Win = function () { }; // Temporarily replace with no-op function
 
       // Temporarily override Game.CalculateGains
       // Clone the necessary game state
@@ -259,7 +259,7 @@
         originalState.CalculateGains.call(Game); // Call the original CalculateGains
         Game.cookiesPsRawHighest = originalRawHighest; // Restore cookiesPsRawHighest after the call
       };
-  
+
       var res = list_generator().map(
         function (e) {
           var lasting = this.item.lasting(e);
@@ -276,7 +276,7 @@
               30 *
               (Game.dragonLevel < Game.dragonLevels.length - 1 ? 1 : 0.1);
           }
-  
+
           this.item.add(e);
           Game.CalculateGains();
           var cps = this.calc.ecps() + Game.computedMouseCps * this.rate;
@@ -296,18 +296,18 @@
             Game.computedMouseCps * mouse_rate,
         })
       );
-  
+
       Game.Win = funcGW; // Restore Game.Win
       Game.CalculateGains = originalState.CalculateGains; // Restore Game.CalculateGains
       Game.cookiesPsRawHighest = originalState.cookiesPsRawHighest; // Restore cookiesPsRawHighest
-  
+
       return res;
     }
-  
+
     find_best(mouse_rate) {
       var pool = [];
       var zero_buy = Math.sqrt(Game.cookiesEarned * Game.cookiesPs);
-  
+
       for (var i = 0; i < this.schema.length; i++)
         pool = pool.concat(
           this.calc_bonus(
@@ -316,15 +316,15 @@
             mouse_rate || 0
           )
         );
-  
+
       return pool.reduce(function (m, v) {
         return m.acc == 0 && m.price < zero_buy
           ? m
           : v.acc == 0 && v.price < zero_buy
-          ? v
-          : m.acc < v.acc
-          ? v
-          : m;
+            ? v
+            : m.acc < v.acc
+              ? v
+              : m;
       }, pool[0]);
     }
   }
@@ -594,9 +594,9 @@
 
         if (
           wrinklersNormal.length + wrinklersShiny.length >
-            this.settings.maxWrinklers ||
+          this.settings.maxWrinklers ||
           wrinklersNormal.length + wrinklersShiny.length >=
-            Game.getWrinklersMax()
+          Game.getWrinklersMax()
         ) {
           // Pop the fattest normal wrinkler
           if (wrinklersNormal.length > 0) {
@@ -635,7 +635,7 @@
 
     init() {
       super.init(); // Call the parent class's init() method first
-  
+
       // Custom initialization code for WrinklersPopper
       if (this.settings.maxWrinklers == -1) {
         this.settings.maxWrinklers = Game.getWrinklersMax() - 1;
@@ -699,7 +699,7 @@
         this.stop();
         unlockMsg.push(
           modTranslate("krumblorMCompleted") +
-            " Dragon scale, Dragon claw, Dragon fang, Dragon teddy bear."
+          " Dragon scale, Dragon claw, Dragon fang, Dragon teddy bear."
         );
       } else if (dragonLevel >= 4 && hasPetDragon) {
         if (!isKrumblorMenuOpen && Game.specialTab === "") {
@@ -799,8 +799,8 @@
         if (
           this.canBePurchased("Lucky digit") &&
           (Game.prestige + Game.ascendMeterLevel).toString().split("7").length -
-            1 >=
-            1
+          1 >=
+          1
         ) {
           this.doAscendLuck();
         } else {
@@ -818,8 +818,8 @@
             this.canBePurchased("Lucky number") &&
             (Game.prestige + Game.ascendMeterLevel).toString().split("7")
               .length -
-              1 >=
-              2
+            1 >=
+            2
           ) {
             this.doAscendLuck();
           } else {
@@ -844,8 +844,8 @@
             this.canBePurchased("Lucky payout") &&
             (Game.prestige + Game.ascendMeterLevel).toString().split("7")
               .length -
-              1 >=
-              4
+            1 >=
+            4
           ) {
             this.doAscendLuck();
           } else {
@@ -1158,10 +1158,10 @@
         UIManager.updateModuleStatusMessage(
           this.id,
           "Waiting for enough cookies to buy building: " +
-            `"${info.obj.name}"` +
-            " for " +
-            `"${info.obj.price}"` +
-            " cookies to continue."
+          `"${info.obj.name}"` +
+          " for " +
+          `"${info.obj.price}"` +
+          " cookies to continue."
         );
         return;
       }
@@ -1169,9 +1169,9 @@
         UIManager.updateModuleStatusMessage(
           this.id,
           "Waiting: " +
-            this.beautifySeconds(wait) +
-            ", to buy: " +
-            `"${info.obj.name}"`
+          this.beautifySeconds(wait) +
+          ", to buy: " +
+          `"${info.obj.name}"`
         );
       } else if (wait < 0) {
         UIManager.updateModuleStatusMessage(
@@ -1206,6 +1206,13 @@
       var nextProcWait = wait * 1000 / 2; // convert seconds to milliseconds - divide by 2 to cut the wait time in half to account for wait variation.
       this.nextProc = (now + this.settings.delay) + (nextProcWait > 0 ? nextProcWait : 0);
       // console.log("Now: ", now, "Setting delay: ", this.settings.delay, "Wait: ", wait, "NPW: ", nextProcWait, "nextProc: ", this.nextProc);
+    }
+    init() {
+      super.init(); // Call the parent class's init() method first
+
+      // Custom initialization code for popup window message
+      this.closePopupWindow();
+
     }
 
     closePopupWindow() {
@@ -1254,7 +1261,7 @@
             `${modID}SettingsBlock`
           );
           if (existingBlock) existingBlock.remove();
-  
+
           // Dynamically add settings for each module
           this.addModuleSettingsToMenu(modules);
         }
@@ -1379,9 +1386,8 @@
       listing.style.marginTop = "4px";
       listing.style.marginBottom = "4px";
       const button = document.createElement("a");
-      button.className = `smallFancyButton prefButton option ${
-        initialState ? "" : "off"
-      }`;
+      button.className = `smallFancyButton prefButton option ${initialState ? "" : "off"
+        }`;
       button.textContent = `${labelText} ${initialState ? "ON" : "OFF"}`;
       button.setAttribute("data-module-name", module.id);
       button.setAttribute("id", `${module.id}-${settingKey}-toggle`);
@@ -1440,9 +1446,8 @@
       rightLabel.className = "smallFancyButton"; // Using this class for consistency in styling
       rightLabel.style.float = "right";
       rightLabel.id = `${module.id}${settingKey}SliderRightText`;
-      rightLabel.textContent = `${module.settings[settingKey]}${
-        setting.unit || ""
-      }`;
+      rightLabel.textContent = `${module.settings[settingKey]}${setting.unit || ""
+        }`;
 
       // Create the slider element itself
       const slider = document.createElement("input");
@@ -1519,9 +1524,8 @@
       objects.forEach((obj) => {
         const isSelected = module.settings[vaultArrayName].includes(obj.id); // Access the vaultArray using its name from module.settings
         const button = document.createElement("a");
-        button.className = `smallFancyButton prefButton option ${
-          isSelected ? "" : "off"
-        }`;
+        button.className = `smallFancyButton prefButton option ${isSelected ? "" : "off"
+          }`;
         button.textContent = `${obj.name} ${isSelected ? "ON" : "OFF"}`;
 
         // Toggle selection on click
@@ -1543,39 +1547,46 @@
     },
     updateModuleStatusMessage(moduleId, message) {
       // Check if the module has a custom popup message setting
-      var settings = SettingsManager.loadModuleSettings(moduleId);
-      if (settings.popupWindowMessage) {
-        this.updatePopupContent(message);
+      const module = mod.modules.find(m => m.id === moduleId);
+
+      if (module) {
+        // Check if the module has a custom popup message setting
+        // console.log(module.settings);
+        if (module.settings.popupWindowMessage) {
+          this.updatePopupContent(message);
+        } else {
+          // Fallback to original behavior if popupMessage is false or not set
+
+          // First, find the button related to the moduleName using data-module-name attribute
+          const button = document.querySelector(
+            `[data-module-name="${moduleId}"]`
+          );
+          if (!button) return; // Exit if the button is not found
+
+          // Get the parent element of the button, which should be the div container
+          const listingDiv = button.parentElement;
+
+          // Ensure the message area for the module exists; if not, create it
+          let messageArea = document.getElementById(`${moduleId}-StatusMessage`);
+          if (!messageArea) {
+            // Create the message area since it doesn't exist
+            messageArea = document.createElement("div");
+            messageArea.id = `${moduleId}-StatusMessage`;
+            messageArea.style.fontSize = "0.8rem"; // Adjust font size as needed
+            listingDiv.appendChild(messageArea); // Append the message area to the listing div
+          }
+
+          // Check if the current message in the area is different from the new message to be set
+          const currentMessage = messageArea.querySelector("h2")
+            ? messageArea.querySelector("h2").innerHTML
+            : "";
+          if (currentMessage !== message) {
+            // Update the message content only if it's different
+            messageArea.innerHTML = `<p><h2 style="font-size:1em;">${message}</h2></p>`;
+          }
+        }
       } else {
-        // Fallback to original behavior if popupMessage is false or not set
-
-        // First, find the button related to the moduleName using data-module-name attribute
-        const button = document.querySelector(
-          `[data-module-name="${moduleId}"]`
-        );
-        if (!button) return; // Exit if the button is not found
-
-        // Get the parent element of the button, which should be the div container
-        const listingDiv = button.parentElement;
-
-        // Ensure the message area for the module exists; if not, create it
-        let messageArea = document.getElementById(`${moduleId}-StatusMessage`);
-        if (!messageArea) {
-          // Create the message area since it doesn't exist
-          messageArea = document.createElement("div");
-          messageArea.id = `${moduleId}-StatusMessage`;
-          messageArea.style.fontSize = "0.8rem"; // Adjust font size as needed
-          listingDiv.appendChild(messageArea); // Append the message area to the listing div
-        }
-
-        // Check if the current message in the area is different from the new message to be set
-        const currentMessage = messageArea.querySelector("h2")
-          ? messageArea.querySelector("h2").innerHTML
-          : "";
-        if (currentMessage !== message) {
-          // Update the message content only if it's different
-          messageArea.innerHTML = `<p><h2 style="font-size:1em;">${message}</h2></p>`;
-        }
+        console.warn(`Module with ID ${moduleId} not found.`);
       }
     },
     createDraggablePopup() {
@@ -1619,12 +1630,11 @@
         if (bigCookie) {
           var rect = bigCookie.getBoundingClientRect();
           modPopup.style.position = "fixed";
-          modPopup.style.left = `${
-            rect.left +
+          modPopup.style.left = `${rect.left +
             window.scrollX +
             bigCookie.offsetWidth / 2 -
             modPopup.offsetWidth / 2
-          }px`;
+            }px`;
           modPopup.style.top = `${rect.bottom + window.scrollY + 200}px`; // 10px for a little spacing from the bottom
         }
 
@@ -1695,13 +1705,13 @@
     },
     getDefaultSettings(moduleId) {
       return this.defaultSettings[moduleId];
-      },
-      init(modules) {
+    },
+    init(modules) {
       modules.forEach(module => {
-      this.settings[module.id] = module.settings;
-      this.defaultSettings[module.id] = { ...module.settings };
+        this.settings[module.id] = module.settings;
+        this.defaultSettings[module.id] = { ...module.settings };
       });
-      },
+    },
   };
 
   const mod = new Mod();
@@ -1727,7 +1737,7 @@
       if (hard) {
         // Reset settings to default on hard reset
         SettingsManager.resetToDefault();
-  
+
         // Reinitialize each module to apply default settings
         mod.modules.forEach((module) => module.init());
       }
@@ -1749,7 +1759,7 @@
     // Called for periodic checks (e.g., for upgrade/achievement unlock conditions) called every few seconds when we check for upgrade/achiev unlock conditions, you can also use this for other checks that you don't need happening every logic frame
     // check: () => {},
   };
-  
+
   Game.registerMod(modID, {
     init: () => {
       SettingsManager.init(mod.modules);
@@ -1760,7 +1770,7 @@
         [30, 6],
         20
       );
-  
+
       // Register mod hooks
       Object.keys(modHooks).forEach((hook) => {
         if (typeof modHooks[hook] === "function") {
