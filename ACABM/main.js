@@ -1138,10 +1138,8 @@
       if (!isFinite(wait)) {
         if (Game.BuildingsOwned === 0) {
           // Filter out buildings that are not in the building vault
-          const availableBuildings = Game.ObjectsById.filter(function (
-            building
-          ) {
-            return !autoBuy.settings.buildingVault.includes(building.id);
+          const availableBuildings = Game.ObjectsById.filter((building) => {
+            return !this.settings.buildingVault.includes(building.id);
           });
 
           // Check if buildings are available after filtering
@@ -1217,8 +1215,8 @@
         this.total++;
       }
       // Update the next process time
-      var nextProcWait = wait * 1000 / 2; // convert seconds to milliseconds - divide by 2 to cut the wait time in half to account for wait variation.
-      this.nextProc = (now + this.settings.delay) + (nextProcWait > 0 ? nextProcWait : 0);
+      // var nextProcWait = wait * 1000 / 2; // convert seconds to milliseconds - divide by 2 to cut the wait time in half to account for wait variation.
+      this.nextProc = (now + this.settings.delay); //  (nextProcWait > 0 ? nextProcWait : 0);
       // console.log("Now: ", now, "Setting delay: ", this.settings.delay, "Wait: ", wait, "NPW: ", nextProcWait, "nextProc: ", this.nextProc);
     }
     init() {
