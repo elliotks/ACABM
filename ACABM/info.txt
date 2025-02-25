@@ -1,11 +1,11 @@
 {
     "Name": "Auto Click and Buy Mod",
-    "ID": "autoclickandbuymod",
+    "ID": "ACABM",
     "Author": "Mafukie",
     "Description": "Cookie clicker Auto Click and Buy Mod.",
-    "ModVersion": 2.40,
+    "ModVersion": 3.00,
     "GameVersion": 2.048,
-    "Date": "2/24/2024",
+    "Date": "3/06/2024",
     "Dependencies": [],
     "Disabled": 1,
     "AllowSteamAchievs": 1
